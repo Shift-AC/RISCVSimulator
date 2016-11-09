@@ -5,7 +5,7 @@ import javax.swing.*;
 import java.io.*;
 import java.text.*;
 
-package com.github.ShiftAC.RISCVSimulator;
+package com.github.ShiftAC.RISCVMachine;
 
 class RISCVSimulatorFrame extends SFrame
 {
@@ -278,7 +278,7 @@ class RISCVSimulatorFrame extends SFrame
             mnuBreakpoint.setEnabled(false);
             break;
         }
-    }
+    } 
 
     private void bindMachine(RISCVMachine machine)
     {
@@ -317,6 +317,127 @@ class RISCVSimulatorFrame extends SFrame
         }
     }
 }
+
+class CodeLinePane extends JPanel
+{
+
+
+    public CodePane(RISCVInstruction inst, int lineIndex)
+    {
+
+    }
+}
+
+class ProgramView extends JPanel
+{
+    RISCVInstruction[] instructions;
+    CodeLinePane[] codeLines;
+    int startIndex = 0;
+    int codeLinesOnScreen = ((Integer)(Util.configManager.getConfig(
+        "ProgramView.codeLinesOnScreen"))).intValue();
+
+    private MouseWheelListener mwl = new MouseWheelListener()
+    {
+        public void mouseWheelMoved(MouseWheelEvent e)
+        {
+            int delta = ((Integer)(Util.configManager.getConfig(
+                "ProgramView.scrollLines"))).intValue();
+
+            int originalStartIndex = startIndex;
+            if (startIndex + delta + codeLines.length >= instructions.length)
+            {
+                startIndex = instructions.length - codeLines.length;
+                if (startIndex < 0)
+                {
+                    startIndex = originalStartIndex;
+                }
+            }
+            else
+            {
+                startIndex += delta;
+            }
+
+            refresh();
+        }
+    };
+
+    public ProgramView() {}
+
+    public void bindMachine(RISCVMachine machine)
+    {
+        this.instructions = machine.instructions;
+
+
+        setLayout(new GridLayout(codeLinesOnScreen, 1));
+
+        codeLines = new CodeLinePane[codeLinesOnScreen];
+        for (int i = 0; i < codeLinesOnScreen; ++i)
+        {
+            if (i == codeLinesOnScreen)
+            {
+                break;
+            }
+            codeLines[i] = new CodeLinePane(null, i);
+        }
+
+        this.addMouseWheelListener(mwl);
+    }
+
+    public void refreshAtPC()
+    {
+        startIndex = getPCIndex(machine);
+        if (startIndex + codeLines.length > instructions.length)
+        {
+            startIndex = instructions.length - codeLines.length;
+            startIndex = startIndex < 0 ? 0 : startAddress;
+        }
+
+        refresh();
+    }
+
+    public void refresh()
+    {
+        int i = 0;
+        for (; i < codeLines.length; ++i)
+        {
+            int offset = startIndex + i;
+            if (offset == instructions.length)
+            {
+                break;
+            }
+
+            codeLines[i].refresh(instructions[offset], offset);
+        }
+        for (; i < codeLines.length; ++i)
+        {
+            codeLines[i].refresh(null, offset);
+        }
+    }
+
+    private int getPCIndex(RISCVMachine machine)
+    {
+        long offset = machine.programCounter - 
+            machine.memory[RISCVMachine.SEGMENT_TEXT].startAddress;
+        
+        return (int)(offset >>> 2);
+    }
+ 
+    private RISCVInstruction getInstruction(int index)
+    {
+        if (index < 0 || index >= instructions.length)
+        {
+            return null;
+        }
+        return instructions[index];
+    }
+
+    // * deprecated
+    // use JScrollPane to place the components is ok, but needs
+    // setPreferredSize() (setBounds doesn't make sense)
+
+
+}
+
 
 public class RISCVSimulator
 {
