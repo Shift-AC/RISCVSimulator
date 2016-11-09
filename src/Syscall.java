@@ -1,19 +1,3 @@
-/*
-
-public abstract class SyscallManager extends CombineLogic
-{
-    RISCVMachine machine;
-    Syscall[] syscalls;
-    public SyscallManager(RISCVMachine machine)
-    {
-        super();
-
-        this.machine = machine;
-    }
-
-    abstract public void initSyscalls();
-}
-*/
 package com.github.ShiftAC.RISCVSimulator;
 
 public abstract class Syscall
