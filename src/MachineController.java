@@ -1,3 +1,5 @@
+package com.github.ShiftAC.RISCVSimulator;
+
 abstract class MachineController extends CombineLogic
 {
     RISCVMachine machine;

@@ -1,3 +1,5 @@
+package com.github.ShiftAC.RISCVSimulator;
+
 class Signal
 {
     String name;

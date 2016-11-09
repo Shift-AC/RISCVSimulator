@@ -1,3 +1,5 @@
+package com.github.ShiftAC.RISCVSimulator;
+
 public abstract class SyscallManager extends CombineLogic
 {
     RISCVMachine machine;

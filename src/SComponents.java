@@ -5,6 +5,8 @@ import javax.swing.*;
 import java.io.*;
 import java.text.*;
 
+package com.github.ShiftAC.RISCVSimulator;
+
 class SLabel extends JLabel
 {
     public SLabel(String text, Container frm)

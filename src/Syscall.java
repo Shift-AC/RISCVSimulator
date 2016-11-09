@@ -14,6 +14,8 @@ public abstract class SyscallManager extends CombineLogic
     abstract public void initSyscalls();
 }
 */
+package com.github.ShiftAC.RISCVSimulator;
+
 public abstract class Syscall
 {
     long num;

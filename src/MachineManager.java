@@ -3,6 +3,8 @@ import java.io.*;
 import java.text.*;
 import java.util.concurrent.*;
 
+package com.github.ShiftAC.RISCVSimulator;
+
 class MessageQueue
 {
     protected LinkedList<Object> queue;

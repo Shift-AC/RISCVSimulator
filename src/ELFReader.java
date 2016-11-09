@@ -2,6 +2,8 @@ import java.util.*;
 import java.io.*;
 import java.lang.*;
 
+package com.github.ShiftAC.RISCVSimulator;
+
 public class ELFReader
 {
 	static final String[] SEG_NAMES = Util.NAMES_OF_MEMSEG;

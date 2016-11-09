@@ -5,6 +5,8 @@ import javax.swing.*;
 import java.io.*;
 import java.text.*;
 
+package com.github.ShiftAC.RISCVSimulator;
+
 class Util
 {
     // for sh_type

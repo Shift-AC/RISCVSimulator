@@ -1,6 +1,8 @@
 import java.io.*;
 import java.util.*;
 
+package com.github.ShiftAC.RISCVSimulator;
+
 // Configuring Rules:
 // 1. ConfigManager manages all usable configures in the system.
 // 2. Each config(accessed by program) has format: fileName.configName
