@@ -165,7 +165,7 @@ public class RISCVMachine
 
         String controlName = (String)(Util.configManager.getConfig(
                 "RISCVMachine.machineControllerName"));
-        try
+        /*try
         {
             controller = 
                 (MachineController)Class.forName(controlName).newInstance();
@@ -173,7 +173,7 @@ public class RISCVMachine
         catch (Exception e)
         {
             Util.reportExceptionAndExit("致命错误：无法读取虚拟机控制部件信息", e);
-        }
+        }*/
     }
 
     void printInfo() {

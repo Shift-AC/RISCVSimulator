@@ -78,3 +78,4 @@ S floatRegisterName28=f28
 S floatRegisterName29=f29
 S floatRegisterName30=f30
 S floatRegisterName31=f31
+S machineControllerName=defMachineController
