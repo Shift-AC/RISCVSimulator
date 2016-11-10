@@ -164,7 +164,7 @@ public class RISCVMachine
         // instructions.asm?
 
         String controlName = (String)(Util.configManager.getConfig(
-                "RICSVMachine.machineControllerName"));
+                "RISCVMachine.machineControllerName"));
         try
         {
             controller = 

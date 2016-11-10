@@ -1,4 +1,3 @@
 cd src
-javac *.java
-mv *.class ../bin/
+javac -d ../bin/ -encoding utf8 *.java
 cd ..

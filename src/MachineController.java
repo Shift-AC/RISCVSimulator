@@ -4,7 +4,7 @@ abstract class MachineController extends CombineLogic
 {
     RISCVMachine machine;
     CombineLogic[] modules;
-    SyscallManager syscallManager;
+    Syscall[] syscalls;
 
     public MachineController(RISCVMachine machine)
     {
@@ -16,11 +16,13 @@ abstract class MachineController extends CombineLogic
     // do nothing since we don't need signals for a controller.
     protected void initSignals() {}
 
+    abstract protected void initSyscall();
+
     // bind a CombineLogic's input to other CombineLogic's output
     // CAUTION: if an input signal is binded to an output signal, it will 
     // ignore it's original value and therefore setInput won't be able to
     // change it's value anymore. to set it's value, unbind() is needed.
-    static public boolean bind(CombineLogic srcLogic, String srcName, 
+    static protected boolean bind(CombineLogic srcLogic, String srcName, 
         CombineLogic destLogic, String destName)
     {
         Signal dest = destLogic.findInputByName(destName);
@@ -36,7 +38,7 @@ abstract class MachineController extends CombineLogic
         return true;
     }
 
-    static public boolean unbind(CombineLogic logic, String name)
+    static protected boolean unbind(CombineLogic logic, String name)
     {
         Signal signal = logic.findInputByName(name);
         

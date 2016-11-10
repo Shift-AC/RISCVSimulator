@@ -1,7 +1,7 @@
+package com.github.ShiftAC.RISCVSimulator;
+
 import java.io.*;
 import java.util.*;
-
-package com.github.ShiftAC.RISCVSimulator;
 
 // Configuring Rules:
 // 1. ConfigManager manages all usable configures in the system.

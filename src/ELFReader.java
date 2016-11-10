@@ -1,8 +1,8 @@
+package com.github.ShiftAC.RISCVSimulator;
+
 import java.util.*;
 import java.io.*;
 import java.lang.*;
-
-package com.github.ShiftAC.RISCVSimulator;
 
 public class ELFReader
 {

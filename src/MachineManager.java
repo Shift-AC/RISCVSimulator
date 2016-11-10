@@ -1,9 +1,9 @@
+package com.github.ShiftAC.RISCVSimulator;
+
 import java.util.*;
 import java.io.*;
 import java.text.*;
 import java.util.concurrent.*;
-
-package com.github.ShiftAC.RISCVSimulator;
 
 class MessageQueue
 {
