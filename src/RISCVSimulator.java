@@ -156,7 +156,7 @@ class RISCVSimulatorFrame extends SFrame
         @Override
         public void actionPerformed(ActionEvent e)
         {
-
+            memoryFrame.setVisible(true);
         }
     };
     SMenuItem mnuGeneralRegister;
@@ -165,7 +165,7 @@ class RISCVSimulatorFrame extends SFrame
         @Override
         public void actionPerformed(ActionEvent e)
         {
-
+            generalRegFrame.setVisible(true);
         }
     };
     SMenuItem mnuFloatRegister;
@@ -174,7 +174,7 @@ class RISCVSimulatorFrame extends SFrame
         @Override
         public void actionPerformed(ActionEvent e)
         {
-
+            floatRegFrame.setVisible(true);
         }
     };
     SMenuItem mnuSymbolTable;
@@ -183,7 +183,7 @@ class RISCVSimulatorFrame extends SFrame
         @Override
         public void actionPerformed(ActionEvent e)
         {
-
+            symbolFrame.setVisible(true);
         }
     };
 
@@ -198,7 +198,7 @@ class RISCVSimulatorFrame extends SFrame
 
     public RISCVSimulatorFrame()
     {
-        super("RISCVSimulatorFrame " + Util.version);
+        super("RISCVSimulator " + Util.version);
         addWindowListener(wlsFrame);
         resizeCenterScreen(840, 768);
         setResizable(false);
@@ -293,14 +293,19 @@ class RISCVSimulatorFrame extends SFrame
         programView.bindMachine(machine);
 
         memoryFrame = new TableMemoryViewFrame(
-            MachineManager.snapshot.memoryFrag);
-
+            MachineManager.snapshot);
         generalRegFrame = new TableGeneralRegViewFrame(
             MachineManager.snapshot.generalRegister);
         floatRegFrame = new TableFloatRegViewFrame(
             MachineManager.snapshot.floatRegister);
         symbolFrame = new TableSymbolViewFrame(
             MachineManager.snapshot.symbol);
+
+        MemorySegment[] memory = machine.memory;
+        for (int i = 0;i < memory.length; ++i)
+        {
+            System.out.println(memory[i].startAddress + " " + memory[i].endAddress);
+        }
     }
 
     private void refreshState()

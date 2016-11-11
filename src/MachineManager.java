@@ -116,16 +116,29 @@ class MachineStateSnapshot extends MachineInfo
             "MachineStateSnapshot.memoryFragmentLength"))).intValue();
         memoryFrag = new Byte[fragLength];
         mmu = new MemoryManageUnit(machine);
+        record(machine, 0);
     }
 
     public void record(RISCVMachine machine, long startAddress)
     {
         super.record(machine);
 
+        recordMemory(startAddress);
+    }
+
+    public void recordMemory(long startAddress)
+    {
         this.startAddress = new Long(startAddress);
         for (int i = 0; i < memoryFrag.length; ++i)
         {
-            memoryFrag[i] = mmu.loadByte(startAddress + i, true).byteValue();
+            Long frag = mmu.loadByte(startAddress + i, true);
+            if (frag == null)
+            {
+                memoryFrag[i] = null;
+                continue;
+            }
+            memoryFrag[i] = new Byte(frag.byteValue());
+            System.out.println((startAddress + i) + " " + memoryFrag[i]);
         }
     }
 
@@ -133,14 +146,19 @@ class MachineStateSnapshot extends MachineInfo
     {
         super.save(machine);
 
+        saveMemory(machine);
+    }
+
+    public void saveMemory(RISCVMachine machine)
+    {
         for (int i = 0; i < memoryFrag.length; ++i)
         {
             if (memoryFrag[i] == null)
             {
                 continue;
             }
-            mmu.saveByte(memoryFrag[i].byteValue(), 
-                         (byte)(startAddress.longValue() + i));
+            mmu.saveByte(
+                startAddress.longValue() + i, memoryFrag[i].byteValue());
         }
     }
 }
@@ -201,7 +219,7 @@ public class MachineManager implements Runnable
     static MessageQueue messageQueue = new MessageQueue();
     static MessageQueue notifyQueue = new MessageQueue();
     static MachineManager instance = new MachineManager();
-    static private RISCVMachine machine = null;
+    static RISCVMachine machine = null;
     static public MachineStateSnapshot snapshot = null;
     static private MachineInitInfo initInfo = null;
 
