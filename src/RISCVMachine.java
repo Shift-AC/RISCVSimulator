@@ -165,15 +165,19 @@ public class RISCVMachine
 
         String controlName = (String)(Util.configManager.getConfig(
                 "RISCVMachine.machineControllerName"));
-        /*try
+        controlName = Util.packageName + "." + controlName;
+        try
         {
             controller = 
                 (MachineController)Class.forName(controlName).newInstance();
+            controller.machine = this;
         }
         catch (Exception e)
         {
-            Util.reportExceptionAndExit("致命错误：无法读取虚拟机控制部件信息", e);
-        }*/
+            e.printStackTrace();
+            Util.reportErrorAndExit(
+                "致命错误：无法读取虚拟机控制部件信息\n类名：" + controlName);
+        }
     }
 
     void printInfo() {

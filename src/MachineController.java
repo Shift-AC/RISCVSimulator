@@ -6,6 +6,13 @@ abstract class MachineController extends CombineLogic
     CombineLogic[] modules;
     Syscall[] syscalls;
 
+    public MachineController()
+    {
+        super();
+ 
+        this.machine = null;
+    }
+
     public MachineController(RISCVMachine machine)
     {
         super();
@@ -52,9 +59,34 @@ abstract class MachineController extends CombineLogic
         return true;
     }
 }
-/*
+
 class DefMachineController extends MachineController
 {
+    public DefMachineController()
+    {
+        super();
+    }
 
+    public DefMachineController(RISCVMachine machine)
+    {
+        super(machine);
+    }
+
+    @Override
+    public void parse()
+    {
+
+    }
+
+    @Override
+    public void reset()
+    {
+
+    }
+
+    @Override
+    protected void initSyscall()
+    {
+
+    }
 }
-*/

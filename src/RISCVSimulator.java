@@ -23,6 +23,8 @@ class RISCVSimulatorFrame extends SFrame
     DataViewFrame symbolFrame;
     DataViewFrame memoryFrame;
 
+    ProgramView programView;
+
     JMenuBar menu;
     SMenu mnuFile;
     SMenuItem mnuOpen;
@@ -55,6 +57,7 @@ class RISCVSimulatorFrame extends SFrame
                 }
                 catch (Exception ex)
                 {
+                    System.err.println(fileName);
                     Util.reportError("无法打开选定的文件。");
                     return;
                 }
@@ -69,6 +72,8 @@ class RISCVSimulatorFrame extends SFrame
                 {
                     bindMachine(machine);
                 }
+
+                System.out.println("ELF loaded");
             }
         }
     };
@@ -202,6 +207,11 @@ class RISCVSimulatorFrame extends SFrame
         setResizable(false);
         initializeMenu();
         setDebugOptionState(STATE_NOTREADY);
+
+        //pneFrame.
+        setLayout(new GridLayout(1, 1));
+        programView = new ProgramView();
+        ((JFrame)this).add(programView);
     }
 
     void checkExit()
@@ -231,8 +241,8 @@ class RISCVSimulatorFrame extends SFrame
         mnuPause.addActionListener(alsPause);
         mnuContinue = new SMenuItem("继续(C)", 'C', mnuDebug);
         mnuContinue.addActionListener(alsContinue);
-        mnuBreakpoint = new SMenuItem("设置断点(B)", 'B', mnuDebug);
-        mnuBreakpoint.addActionListener(alsBreakpoint);
+        //mnuBreakpoint = new SMenuItem("设置断点(B)", 'B', mnuDebug);
+        //mnuBreakpoint.addActionListener(alsBreakpoint);
 
         mnuView = new SMenu("查看(V)", 'V', menu);
         mnuMemory = new SMenuItem("内存(M)", 'M', mnuView);
@@ -259,7 +269,7 @@ class RISCVSimulatorFrame extends SFrame
             mnuTerminate.setEnabled(true);
             mnuPause.setEnabled(true);
             mnuContinue.setEnabled(false);
-            mnuBreakpoint.setEnabled(false);
+            //mnuBreakpoint.setEnabled(false);
             break;
         case STATE_RUNNABLE:
             mnuStep.setEnabled(true);
@@ -267,7 +277,7 @@ class RISCVSimulatorFrame extends SFrame
             mnuTerminate.setEnabled(false);
             mnuPause.setEnabled(false);
             mnuContinue.setEnabled(true);
-            mnuBreakpoint.setEnabled(true);
+            //mnuBreakpoint.setEnabled(true);
             break;
         case STATE_NOTREADY:
             mnuStep.setEnabled(false);
@@ -275,7 +285,7 @@ class RISCVSimulatorFrame extends SFrame
             mnuTerminate.setEnabled(false);
             mnuPause.setEnabled(false);
             mnuContinue.setEnabled(false);
-            mnuBreakpoint.setEnabled(false);
+            //mnuBreakpoint.setEnabled(false);
             break;
         }
     } 

@@ -185,7 +185,7 @@ class SFrame extends JFrame
     @Override
     public Component add(Component com)
     {
-        pneFrame.add(com, JLayeredPane.DEFAULT_LAYER);
+        pneFrame.add(com, JLayeredPane.POPUP_LAYER);
         return com;
     }
 

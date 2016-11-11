@@ -9,6 +9,7 @@ import java.text.*;
 
 class Util
 {
+    static final String packageName = "com.github.ShiftAC.RISCVSimulator";
     // for sh_type
     static final int SHT_PROGBITS = 0x1;
     static final int SHT_NOBITS = 0x8;
@@ -62,7 +63,10 @@ class Util
     {
         "RISCVMachine",
         "MachineStateSnapshot",
-        "MemoryViewFrame"
+        "MemoryViewFrame",
+        "MachineInitInfo",
+        "ProgramView",
+        "CodeLinePane"
     };
     static ConfigManager configManager;
     

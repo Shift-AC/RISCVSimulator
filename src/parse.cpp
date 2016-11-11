@@ -10,7 +10,7 @@ using namespace std;
 const int N = 1000000;
 const int LL = 200;
 char *objdumpIn;
-char *objdumpOut = "ObjdumpOut";
+const char objdumpOut[] = "ObjdumpOut";
 
 string asmcode[N];
 int asmtot = 0;

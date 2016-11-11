@@ -33,14 +33,14 @@ class CodeLinePane extends JPanel
     static Color[] backgroundNormal =
     {
         new Color(0xF8, 0xF8, 0xEF, 0xFF),
-        new Color(0xF8, 0xF8, 0xEF, 0xBF),
-        new Color(0xF8, 0xF8, 0xEF, 0x5E)
+        new Color(0xF6, 0xF6, 0xEF, 0xFF), //-0x4
+        new Color(0xF3, 0xF3, 0xF0, 0xFF)  //-0xA
     };
     static Color[] backgroundActive =
     {
         new Color(0xB9, 0xD7, 0xF4, 0xFF),
-        new Color(0xB9, 0xD7, 0xF4, 0xBF),
-        new Color(0xB9, 0xD7, 0xF4, 0x5E)
+        new Color(0xC7, 0xDD, 0xF3, 0xFF), // -0x4
+        new Color(0xDB, 0xE6, 0xF1, 0xFF)  // -0xA
     };
 
     JLabel lblStatus;
@@ -53,20 +53,25 @@ class CodeLinePane extends JPanel
     {
         super();
         this.transparent = transparent;
-        this.refresh(inst, lineIndex, pcIndex);
 
         String fontName = (String)(Util.configManager.getConfig(
             "CodeLinePane.fontName"));
+        
+        // debug
+        fontName = "Droid Sans Mono";
 
-        defFont = new Font(fontName, Font.PLAIN, 21);
+        defFont = new Font(fontName, Font.PLAIN, 16);
 
         lblStatus = new JLabel();
         this.add(lblStatus);
         lblLineIndex = new JLabel();
+        lblLineIndex.setFont(defFont);
         this.add(lblLineIndex);
         lblInst = new JLabel();
+        lblInst.setFont(defFont);
         this.add(lblInst);
         lblParam = new JLabel();
+        lblParam.setFont(defFont);
         this.add(lblParam);
 
         this.setLayout(null);
@@ -74,6 +79,48 @@ class CodeLinePane extends JPanel
         this.setBackground(backgroundNormal[transparent]);
 
         placeComponents();
+
+        this.addMouseListener(new MouseAdapter()
+        {
+            @Override
+            public void mouseEntered(MouseEvent e)
+            {
+                setActive(true);
+            }
+            @Override
+            public void mouseExited(MouseEvent e)
+            {
+                setActive(false);
+            }
+            private boolean inlblStatus(int x, int y)
+            {
+                return x < 33 && x > 8;
+            }
+            @Override
+            public void mouseClicked(MouseEvent e)
+            {
+                if (!inlblStatus(e.getX(), e.getY()))
+                {
+                    return;
+                }
+
+                if (e.getButton() == MouseEvent.BUTTON1)
+                {
+                    Icon current = lblStatus.getIcon();
+                    for (int i = 0; i < 4; ++i)
+                    {
+                        if (current == statusPic[transparent][i])
+                        {
+                            lblStatus.setIcon(
+                                statusPic[transparent][i ^ 1]);
+                        }
+                    }
+                }
+            }
+        });
+
+        this.refresh(inst, lineIndex, pcIndex);
+        repaint();
     }
 
     public void refresh(RISCVInstruction inst, int lineIndex, int pcIndex)
@@ -81,9 +128,13 @@ class CodeLinePane extends JPanel
         this.lineIndex = lineIndex;
         this.inst = inst;
 
-        setStatus(inst.isBreakpoint, pcIndex == lineIndex);
         setlineIndex(lineIndex);
-        setAssembly(inst.asm);
+
+        if (inst != null)
+        {
+            setStatus(inst.isBreakpoint, pcIndex == lineIndex);
+            setAssembly(inst.asm);
+        }
     }
 
     private void setStatus(boolean isBreakPoint, boolean isPCIndex)
@@ -99,6 +150,7 @@ class CodeLinePane extends JPanel
         }
 
         lblStatus.setIcon(statusPic[transparent][ind]);
+        repaint();
     }
 
     private void setlineIndex(int lineIndex)
@@ -156,29 +208,41 @@ class CodeLinePane extends JPanel
         statusPic[1] = new Icon[4];
         statusPic[2] = new Icon[4];
 
-        fileName = (String)(Util.configManager.getConfig(
-            "CodeViewPane.normalPic"));
-        statusPic[0][0] = new ImageIcon(fileName);
-        statusPic[1][0] = new ImageIcon(fileName + "F");
-        statusPic[2][0] = new ImageIcon(fileName + "FF");
+        //fileName = (String)(Util.configManager.getConfig(
+        //    "CodeLinePane.normalPic"));
+        statusPic[0][0] = null;//new ImageIcon(fileName);
+        statusPic[1][0] = null;//new ImageIcon(fileName + "F");
+        statusPic[2][0] = null;//new ImageIcon(fileName + "FF");
 
         fileName = (String)(Util.configManager.getConfig(
-            "CodeViewPane.breakpointPic"));
-        statusPic[0][1] = new ImageIcon(fileName);
-        statusPic[1][1] = new ImageIcon(fileName + "F");
-        statusPic[2][1] = new ImageIcon(fileName + "FF");
+            "CodeLinePane.breakpointPic"));
+        statusPic[0][1] = new ImageIcon(fileName + ".png");
+        statusPic[1][1] = new ImageIcon(fileName + "F.png");
+        statusPic[2][1] = new ImageIcon(fileName + "FF.png");
         
         fileName = (String)(Util.configManager.getConfig(
-            "CodeViewPane.processPic"));
-        statusPic[0][2] = new ImageIcon(fileName);
-        statusPic[1][2] = new ImageIcon(fileName + "F");
-        statusPic[2][2] = new ImageIcon(fileName + "FF");
+            "CodeLinePane.processPic"));
+        statusPic[0][2] = new ImageIcon(fileName + ".png");
+        statusPic[1][2] = new ImageIcon(fileName + "F.png");
+        statusPic[2][2] = new ImageIcon(fileName + "FF.png");
         
         fileName = (String)(Util.configManager.getConfig(
-            "CodeViewPane.breakpointAndProcessPic"));
-        statusPic[0][3] = new ImageIcon(fileName);
-        statusPic[1][3] = new ImageIcon(fileName + "F");
-        statusPic[2][3] = new ImageIcon(fileName + "FF");
+            "CodeLinePane.breakpointAndProcessPic"));
+        statusPic[0][3] = new ImageIcon(fileName + ".png");
+        statusPic[1][3] = new ImageIcon(fileName + "F.png");
+        statusPic[2][3] = new ImageIcon(fileName + "FF.png");
+    }
+
+    static public void main(String[] args)
+    {
+        JFrame frm = new JFrame();
+        CodeLinePane clp = new CodeLinePane(null, 0, 0, 2);
+        clp.lblInst.setText("ADD");
+        clp.lblParam.setText("%AX, %AX");
+        frm.setBounds(300, 300, 640, 480);
+        frm.add(clp);
+        frm.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frm.setVisible(true);
     }
 }
 
@@ -188,57 +252,73 @@ public class ProgramView extends JPanel
     RISCVMachine machine;
     CodeLinePane[] codeLines;
     int startIndex = 0;
-    int codeLinesOnScreen = ((Integer)(Util.configManager.getConfig(
-        "ProgramView.codeLinesOnScreen"))).intValue();
+    int codeLinesOnScreen;
 
-    private MouseWheelListener mwl = new MouseWheelListener()
+    public ProgramView()
     {
-        public void mouseWheelMoved(MouseWheelEvent e)
+        codeLinesOnScreen = ((Integer)(Util.configManager.getConfig(
+            "ProgramView.codeLinesOnScreen"))).intValue();
+        setLayout(new GridLayout(codeLinesOnScreen, 1));
+
+        codeLines = new CodeLinePane[codeLinesOnScreen];
+        for (int i = 2; i < codeLinesOnScreen - 2; ++i)
         {
-            int delta = ((Integer)(Util.configManager.getConfig(
-                "ProgramView.scrollLines"))).intValue();
-
-            int originalStartIndex = startIndex;
-            if (startIndex + delta + codeLines.length >= instructions.length)
-            {
-                startIndex = instructions.length - codeLines.length;
-                if (startIndex < 0)
-                {
-                    startIndex = originalStartIndex;
-                }
-            }
-            else
-            {
-                startIndex += delta;
-                startIndex = startIndex < 0 ? 0 : startIndex;
-            }
-
-            refresh();
+            codeLines[i] = new CodeLinePane(
+                null, i, i, CodeLinePane.MODE_OPAQUE);
         }
-    };
+        int end = codeLinesOnScreen - 1;
+        codeLines[0] = new CodeLinePane(
+            null, 0, 0, CodeLinePane.MODE_DOUBLEFADE);
+        codeLines[end] = new CodeLinePane(
+            null, end, end, CodeLinePane.MODE_DOUBLEFADE);
+        codeLines[1] = new CodeLinePane(
+            null, 1, 1, CodeLinePane.MODE_FADE);
+        codeLines[end - 1] = new CodeLinePane(
+            null, end - 1, end - 1, CodeLinePane.MODE_FADE);
 
-    public ProgramView() {}
+        for (int i = 0; i < codeLinesOnScreen; ++i)
+        {
+            add(codeLines[i]);
+        }
+
+        this.addMouseWheelListener(new MouseWheelListener()
+        {
+            public void mouseWheelMoved(MouseWheelEvent e)
+            {
+                if (machine == null)
+                {
+                    return;
+                }
+
+                int delta = ((Integer)(Util.configManager.getConfig(
+                    "ProgramView.scrollLines"))).intValue();
+
+                int originalStartIndex = startIndex;
+                startIndex += delta;
+                if (startIndex + codeLines.length >= instructions.length)
+                {
+                    startIndex = instructions.length - codeLines.length;
+                    if (startIndex < 0)
+                    {
+                        startIndex = originalStartIndex;
+                    }
+                }
+                else
+                {
+                    startIndex = startIndex < 0 ? 0 : startIndex;
+                }
+
+                refresh();
+            }
+        });
+    }
 
     public void bindMachine(RISCVMachine machine)
     {
         this.machine = machine;
         this.instructions = machine.instructions;
 
-
-        setLayout(new GridLayout(codeLinesOnScreen, 1));
-
-        codeLines = new CodeLinePane[codeLinesOnScreen];
-        for (int i = 0; i < codeLinesOnScreen; ++i)
-        {
-            if (i == codeLinesOnScreen)
-            {
-                break;
-            }
-            codeLines[i] = new CodeLinePane(
-                null, i, i, CodeLinePane.MODE_OPAQUE);
-        }
-
-        this.addMouseWheelListener(mwl);
+        refreshAtPC();
     }
 
     public void refreshAtPC()
@@ -285,5 +365,16 @@ public class ProgramView extends JPanel
     // use JScrollPane to place the components is ok, but needs
     // setPreferredSize() (setBounds doesn't make sense)
 
+    static public void main(String[] args)
+    {
+        JFrame frm = new JFrame();
+        ProgramView pv = new ProgramView();
+        frm.setBounds(300, 300, 480, 960);
+        frm.setLayout(null);
+        frm.add(pv);
+        pv.setBounds(0, 0, 336, 768);
 
+        frm.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frm.setVisible(true);
+    }
 }

@@ -191,7 +191,7 @@ public class MachineManager implements Runnable
         private int getSegmentIndex(int index)
         {
             String segmentName = (String)(Util.configManager.getConfig(
-                "MachineInfo.savedSegmentName" + index));
+                "MachineInitInfo.savedSegmentName" + index));
 
             return ((Integer)(Util.configManager.getConfig(
                 "RISCVMachine." + segmentName))).intValue();
