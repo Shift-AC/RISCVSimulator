@@ -144,8 +144,8 @@ public class RISCVMachine
         int count;
         
         // debug
-        symbol = new Symbol[1];
-        symbol[0] = new Symbol(0, 98731983, "Symbol");
+        //symbol = new Symbol[1];
+        //symbol[0] = new Symbol(0, 98731983, "Symbol");
 
         count = ((Integer)(Util.configManager.getConfig(
             "RISCVMachine.generalRegisterCount"))).intValue();

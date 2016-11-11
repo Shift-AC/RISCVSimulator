@@ -68,7 +68,7 @@ class ConfigManager
     }
     public Object getConfig(String fullName)
     {
-        System.err.println("getConfig: getting " + fullName);
+        //System.err.println("getConfig: getting " + fullName);
 
         int separate = fullName.indexOf('.');
         String fileName = fullName.substring(0, separate);

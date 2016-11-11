@@ -33,9 +33,6 @@ class RISCVSimulatorFrame extends SFrame
         @Override
         public void actionPerformed(ActionEvent e)
         {
-            // debug
-            //bindMachine(new RISCVMachine());
-
             JFileChooser fc = new JFileChooser();
             fc.setDialogTitle("打开ELF文件");
             javax.swing.filechooser.FileFilter filter = 
@@ -203,7 +200,7 @@ class RISCVSimulatorFrame extends SFrame
     {
         super("RISCVSimulatorFrame " + Util.version);
         addWindowListener(wlsFrame);
-        resizeCenterScreen(384, 768);
+        resizeCenterScreen(840, 768);
         setResizable(false);
         initializeMenu();
         setDebugOptionState(STATE_NOTREADY);
@@ -293,6 +290,7 @@ class RISCVSimulatorFrame extends SFrame
     private void bindMachine(RISCVMachine machine)
     {
         MachineManager.setMachine(machine);
+        programView.bindMachine(machine);
 
         memoryFrame = new TableMemoryViewFrame(
             MachineManager.snapshot.memoryFrag);

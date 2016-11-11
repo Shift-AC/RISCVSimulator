@@ -28,13 +28,22 @@ class CodeLinePane extends JPanel
         "<html><font color=#3E3E3C>",
         "<html><font color=#9C9C96>"
     };
+    static String[] colorLineNum = 
+    {
+        "<html><font color=#5070D0>",
+        "<html><font color=#8890D8>",
+        "<html><font color=#BCC0E4>"
+    };
     static String colorTextSuffix = "</font></html>";
 
     static Color[] backgroundNormal =
     {
-        new Color(0xF8, 0xF8, 0xEF, 0xFF),
-        new Color(0xF6, 0xF6, 0xEF, 0xFF), //-0x4
-        new Color(0xF3, 0xF3, 0xF0, 0xFF)  //-0xA
+        new Color(0xF0, 0xF0, 0xF0, 0xFF),
+        new Color(0xF0, 0xF0, 0xF0, 0xFF),
+        new Color(0xF0, 0xF0, 0xF0, 0xFF)        
+        //new Color(0xF8, 0xF8, 0xEF, 0xFF),
+        //new Color(0xF6, 0xF6, 0xEF, 0xFF), //-0x4
+        //new Color(0xF3, 0xF3, 0xF0, 0xFF)  //-0xA
     };
     static Color[] backgroundActive =
     {
@@ -56,9 +65,6 @@ class CodeLinePane extends JPanel
 
         String fontName = (String)(Util.configManager.getConfig(
             "CodeLinePane.fontName"));
-        
-        // debug
-        fontName = "Droid Sans Mono";
 
         defFont = new Font(fontName, Font.PLAIN, 16);
 
@@ -75,7 +81,7 @@ class CodeLinePane extends JPanel
         this.add(lblParam);
 
         this.setLayout(null);
-        this.setPreferredSize(new Dimension(384, 24));
+        this.setPreferredSize(new Dimension(840, 24));
         this.setBackground(backgroundNormal[transparent]);
 
         placeComponents();
@@ -132,9 +138,14 @@ class CodeLinePane extends JPanel
 
         if (inst != null)
         {
+            //System.out.println("at:" + lineIndex);
+            //System.out.println(inst.asm);
+
             setStatus(inst.isBreakpoint, pcIndex == lineIndex);
             setAssembly(inst.asm);
         }
+
+        lblParam.repaint();
     }
 
     private void setStatus(boolean isBreakPoint, boolean isPCIndex)
@@ -156,7 +167,88 @@ class CodeLinePane extends JPanel
     private void setlineIndex(int lineIndex)
     {
         lblLineIndex.setText(
-            colorText[transparent] + lineIndex + colorTextSuffix);
+            colorLineNum[transparent] + lineIndex + colorTextSuffix);
+    }
+
+
+    boolean isWhiteSpace(char c)
+    {
+        return c == ' ' || c == '\t';
+    }
+
+    boolean isSpilt(char c)
+    {
+        return c == ' ' || c == '\t' || c == '#'
+            || c == ',' || c == '(' || c == ')' || c == '>';
+    }
+
+    boolean isCharacter(char c)
+    {
+        return (c >= 'a' && c <= 'z') || (c <= 'Z' && c >= 'A');
+    }
+
+    String paintString(String str, String color)
+    {
+        return color + str + "</font>";
+    }
+
+    public String highLight(String param)
+    {
+        StringBuilder sb = new StringBuilder("<html>");
+        String[] registerColor = 
+        {
+            "<font color=#30A0A0>",
+            "<font color=#60B4B4>",
+            "<font color=#A8D2D2>"
+        };
+        String[] instantColor =
+        {
+            "<font color=#D06040>",
+            "<font color=#D8846C>",
+            "<font color=#E4BAAE>"
+        };
+        String[] commentColor = 
+        {
+            "<font color=#000000>",
+            "<font color=#3E3E3C>",
+            "<font color=#9C9C96>"
+        };
+        for (int i = 0; i < param.length(); ++i)
+        {
+            int j = i;  
+            boolean isRegister = isCharacter(param.charAt(i));
+            for (; j < param.length(); ++j)
+            {
+                if (isSpilt(param.charAt(j)))
+                {
+                    break;
+                }
+            }
+            String word = param.substring(i, j);
+            String[] color = isRegister ? registerColor : instantColor;
+            if (j == param.length())
+            {
+                sb.append(paintString(word, color[transparent]));
+                break;
+            }
+            color = param.charAt(j) == '>' ? commentColor : color;
+            sb.append(paintString(word, color[transparent]));
+            
+            if (param.charAt(j) != '#')
+            {
+                sb.append(param.charAt(j));
+            }
+            else
+            {
+                sb.append(param.substring(j));
+                break;
+            }
+            i = j;
+        }
+
+        sb.append("</html>");
+
+        return sb.toString();
     }
 
     private void setAssembly(String assembly)
@@ -164,19 +256,35 @@ class CodeLinePane extends JPanel
         String inst;
         String param;
         int i = 0;
-        for (; !isWhiteSpace(assembly.charAt(i)); ++i);
+        for (; i < assembly.length(); ++i)
+        {
+            if (isWhiteSpace(assembly.charAt(i)))
+            {
+                break;
+            }
+        }
         inst = assembly.substring(0, i);
 
-        for (; isWhiteSpace(assembly.charAt(i)); ++i);
-        param = assembly.substring(i);
-
         lblInst.setText(colorText[transparent] + inst + colorTextSuffix);
-        lblParam.setText(colorText[transparent] + param + colorTextSuffix);
-    }
 
-    private boolean isWhiteSpace(char c)
-    {
-        return c == ' ' || c == '\t';
+        if (i != assembly.length())
+        {
+            for (; i < assembly.length(); ++i)
+            {
+                if (!isWhiteSpace(assembly.charAt(i)))
+                {
+                    break;
+                }
+            }
+            param = assembly.substring(i);
+
+//            param = colorText[transparent] + param + colorTextSuffix;
+            lblParam.setText(highLight(param));
+        }
+        else
+        {
+            lblParam.setText("");
+        }
     }
 
     private void placeComponents()
@@ -184,7 +292,7 @@ class CodeLinePane extends JPanel
         lblStatus.setBounds(9, 0, 24, 24);
         lblLineIndex.setBounds(39, 0, 47, 24);
         lblInst.setBounds(97, 0, 85, 24);
-        lblParam.setBounds(193, 0, 179, 24);
+        lblParam.setBounds(193, 0, 635, 24);
     }
 
     public void setActive(boolean active)
@@ -294,7 +402,7 @@ public class ProgramView extends JPanel
                     "ProgramView.scrollLines"))).intValue();
 
                 int originalStartIndex = startIndex;
-                startIndex += delta;
+                startIndex += delta * e.getWheelRotation();
                 if (startIndex + codeLines.length >= instructions.length)
                 {
                     startIndex = instructions.length - codeLines.length;
@@ -313,10 +421,48 @@ public class ProgramView extends JPanel
         });
     }
 
+
     public void bindMachine(RISCVMachine machine)
     {
         this.machine = machine;
         this.instructions = machine.instructions;
+
+        /*for (int j = 0; j < this.instructions.length; ++j)
+        {
+            String assembly = this.instructions[j].asm;
+
+            String inst;
+            String param;
+            int i = 0;
+            for (; i < assembly.length(); ++i)
+            {
+                if (isWhiteSpace(assembly.charAt(i)))
+                {
+                    break;
+                }
+            }
+            inst = assembly.substring(0, i);
+
+            if (i != assembly.length())
+            {
+                for (; i < assembly.length(); ++i)
+                {
+                    if (!isWhiteSpace(assembly.charAt(i)))
+                    {
+                        break;
+                    }
+                }
+                param = highLight(assembly.substring(i));
+
+                //param = colorText[transparent] + param + colorTextSuffix;
+                //lblParam.setText(highLight(param));
+            }
+            else
+            {
+                param = "";
+            }
+            instructions[j].asm = inst + " " + param;
+        }*/
 
         refreshAtPC();
     }
