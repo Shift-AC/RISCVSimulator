@@ -300,12 +300,6 @@ class RISCVSimulatorFrame extends SFrame
             MachineManager.snapshot.floatRegister);
         symbolFrame = new TableSymbolViewFrame(
             MachineManager.snapshot.symbol);
-
-        MemorySegment[] memory = machine.memory;
-        for (int i = 0;i < memory.length; ++i)
-        {
-            System.out.println(memory[i].startAddress + " " + memory[i].endAddress);
-        }
     }
 
     private void refreshState()
@@ -316,10 +310,9 @@ class RISCVSimulatorFrame extends SFrame
             Util.reportErrorAndExit("致命错误：同步失败，无法停止虚拟机。");
         }
 
-        generalRegFrame.repaint();
-        floatRegFrame.repaint();
-        symbolFrame.repaint();
-        memoryFrame.repaint();
+        generalRegFrame.resetTable();
+        floatRegFrame.resetTable();
+        memoryFrame.resetTable();
     }
 
     private void updateMachine()

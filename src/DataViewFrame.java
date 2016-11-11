@@ -28,6 +28,7 @@ public class DataViewFrame extends SFrame
 class TableDataViewFrame extends DataViewFrame
 {
     JTable table;
+    JScrollPane pneTable;
 
     public TableDataViewFrame(
         String title, DefaultTableModel model)
@@ -40,8 +41,8 @@ class TableDataViewFrame extends DataViewFrame
         //int width = Util.min(columnNames.length * 96, 480);
         //int height = Util.min(data.length * 30, 960);
 
-        JScrollPane panel = new JScrollPane(table);
-        add(panel);
+        pneTable = new JScrollPane(table);
+        add(pneTable);
 
         table.setRowHeight(24);
         table.getTableHeader().setReorderingAllowed(false);
@@ -69,7 +70,6 @@ class TableMemoryViewFrame extends TableDataViewFrame
     }
 
     JTextField txtStartAddress;
-    JScrollPane pneTable;
 
     public TableMemoryViewFrame(MachineStateSnapshot snapshot)
     {
@@ -132,10 +132,8 @@ class TableMemoryViewFrame extends TableDataViewFrame
                     }
                     address = (address << 4) + digit;
                 }
-                save();
-                MachineManager.snapshot.recordMemory(address);
                 txtStartAddress.setText(address + "(0x" + text + ")");
-                resetTable();
+                resetTable(address);
             }
         });
 
@@ -150,8 +148,11 @@ class TableMemoryViewFrame extends TableDataViewFrame
         resizeCenterScreen(width, height);
     }
 
-    private void resetTable()
+    public void resetTable(long startAddress)
     {
+        save();
+        MachineManager.snapshot.recordMemory(startAddress);
+        
         int height = Util.min(table.getRowCount() * 24 + 95, 1000);
         int width = Util.min(columnNames.length * 96, 480);
         remove(pneTable);
@@ -262,10 +263,25 @@ class TableGeneralRegViewFrame extends TableDataViewFrame
         super("通用寄存器", 
               getModel(toDataMatrix(generalRegisters), columnNames));
 
+        pneFrame.setLayout(null);
+
+        pneTable = new JScrollPane(table);
+        add(pneTable);
+
         resizeCenterScreen(96 * 3, 26 * generalRegisters.length + 3);
+
+        pneTable.setBounds(0, 0, 96 * 3, 26 * generalRegisters.length + 3);
 
         table.getColumnModel().getColumn(0).setPreferredWidth(48);
         table.getColumnModel().getColumn(1).setPreferredWidth(240);
+
+        addMouseWheelListener(new MouseWheelListener()
+        {
+            public void mouseWheelMoved(MouseWheelEvent e)
+            {
+                resetTable();
+            }
+        });
     }
 
     static private DefaultTableModel getModel(
@@ -280,6 +296,23 @@ class TableGeneralRegViewFrame extends TableDataViewFrame
                 return column != 0;
             }
         };
+    }
+
+    public void resetTable()
+    {   
+        int height = 26 * MachineManager.snapshot.generalRegister.length + 3;
+        int width = 96 * 3;
+        remove(pneTable);
+        Long[] source = MachineManager.snapshot.generalRegister;
+        table = new JTable(getModel(toDataMatrix(source), columnNames));
+        table.setRowHeight(24);
+        table.getTableHeader().setReorderingAllowed(false);
+        table.getTableHeader().setResizingAllowed(false);
+        table.getColumnModel().getColumn(0).setPreferredWidth(48);
+        table.getColumnModel().getColumn(1).setPreferredWidth(240);
+        pneTable = new JScrollPane(table);
+        add(pneTable);
+        pneTable.setBounds(0, 0, 96 * 3, 26 * source.length + 3);
     }
 
     public void save()
@@ -331,7 +364,16 @@ class TableFloatRegViewFrame extends TableDataViewFrame
     public TableFloatRegViewFrame(Float[] floatRegisters)
     {
         super("浮点寄存器", getModel(toDataMatrix(floatRegisters), columnNames));
+
+        pneFrame.setLayout(null);
+
+        pneTable = new JScrollPane(table);
+        add(pneTable);
+
         resizeCenterScreen(96 * 3, 26 * floatRegisters.length + 3);
+
+        pneTable.setBounds(0, 0, 96 * 3, 26 * floatRegisters.length + 3);
+
         table.getColumnModel().getColumn(0).setPreferredWidth(48);
         table.getColumnModel().getColumn(1).setPreferredWidth(240);
     }
@@ -343,6 +385,23 @@ class TableFloatRegViewFrame extends TableDataViewFrame
             MachineManager.snapshot.floatRegister[i] = 
                 new Float(Float.parseFloat(table.getValueAt(i, 1).toString()));
         }
+    }
+
+    public void resetTable()
+    {   
+        int height = 26 * MachineManager.snapshot.floatRegister.length + 3;
+        int width = 96 * 3;
+        remove(pneTable);
+        Float[] source = MachineManager.snapshot.floatRegister;
+        table = new JTable(getModel(toDataMatrix(source), columnNames));
+        table.setRowHeight(24);
+        table.getTableHeader().setReorderingAllowed(false);
+        table.getTableHeader().setResizingAllowed(false);
+        table.getColumnModel().getColumn(0).setPreferredWidth(48);
+        table.getColumnModel().getColumn(1).setPreferredWidth(240);
+        pneTable = new JScrollPane(table);
+        add(pneTable);
+        pneTable.setBounds(0, 0, 96 * 3, 26 * source.length + 3);
     }
 
     static private DefaultTableModel getModel(
@@ -377,7 +436,6 @@ class TableSymbolViewFrame extends TableDataViewFrame
 {
     static Object[][] originalData;
     static Object[][] usingData;
-    static JScrollPane pneTable;
 
     static String[] columnNames = 
     {
@@ -603,7 +661,7 @@ class TableSymbolViewFrame extends TableDataViewFrame
         }
     }
 
-    private void resetTable()
+    public void resetTable()
     {
         int height = (int)pneTable.getSize().getHeight();
         remove(pneTable);
