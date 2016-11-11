@@ -62,6 +62,7 @@ abstract class MachineController extends CombineLogic
 
 class DefMachineController extends MachineController
 {
+    long originalProgramCounter;
     public DefMachineController()
     {
         super();
@@ -70,18 +71,20 @@ class DefMachineController extends MachineController
     public DefMachineController(RISCVMachine machine)
     {
         super(machine);
+        originalProgramCounter = machine.programCounter;
     }
 
     @Override
     public void parse()
     {
-
+        //System.out.println("???");
+        machine.programCounter += 4;
     }
 
     @Override
     public void reset()
     {
-
+        machine.programCounter = originalProgramCounter;
     }
 
     @Override

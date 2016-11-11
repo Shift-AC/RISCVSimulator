@@ -216,6 +216,6 @@ public class RISCVMachine
 
     public boolean isRunnable()
     {
-        return false;
+        return true;
     }
 }

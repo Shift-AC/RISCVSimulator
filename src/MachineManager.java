@@ -138,7 +138,7 @@ class MachineStateSnapshot extends MachineInfo
                 continue;
             }
             memoryFrag[i] = new Byte(frag.byteValue());
-            System.out.println((startAddress + i) + " " + memoryFrag[i]);
+            //System.out.println((startAddress + i) + " " + memoryFrag[i]);
         }
     }
 
@@ -163,8 +163,10 @@ class MachineStateSnapshot extends MachineInfo
     }
 }
 
-public class MachineManager implements Runnable
+public class MachineManager extends Thread
 {
+    static RISCVSimulatorFrame frm;
+
     static private class MachineInitInfo extends MachineInfo
     {
         MemorySegment[] savedSegments;
@@ -217,7 +219,7 @@ public class MachineManager implements Runnable
     }
 
     static MessageQueue messageQueue = new MessageQueue();
-    static MessageQueue notifyQueue = new MessageQueue();
+    //static MessageQueue notifyQueue = new MessageQueue();
     static MachineManager instance = new MachineManager();
     static RISCVMachine machine = null;
     static public MachineStateSnapshot snapshot = null;
@@ -265,7 +267,7 @@ public class MachineManager implements Runnable
      * use updateSnapshot instead.
 
     // to read machine state: hold this lock
-    // this function will attempt to lock the machine for 60 times, after each 
+    // this function will attempt to lock the machine for 100 times, after each 
     // attempt it will sleep for 50ms.
     // if it fails, null will be returned.
     // CAUTION: only READ is permitted! 
@@ -273,7 +275,7 @@ public class MachineManager implements Runnable
     {
         simulatorWorking = true;
         
-        for (int attempt = 0; attempt < 60; ++attempt);
+        for (int attempt = 0; attempt < 100; ++attempt);
         {
             if (!managerWorking)
             {
@@ -296,7 +298,7 @@ public class MachineManager implements Runnable
     {
         simulatorWorking = true;
 
-        for (int attempt = 0; attempt < 60; ++attempt);
+        for (int attempt = 0; attempt < 100; ++attempt);
         {
             if (!managerWorking)
             {
@@ -330,83 +332,93 @@ public class MachineManager implements Runnable
         return false;
     }
 
-    private MachineManager() {}
-
-    @Override
-    public void run()
+    private MachineManager() 
     {
-        for (; true; sleepIgnoreInterrupt(50))
+        super(()->
         {
-            if (simulatorWorking)
+            for (; true; sleepIgnoreInterrupt(20))
             {
-                continue;
-            }
-            
-            String message = (String)messageQueue.remove();
-            managerWorking = message != null;
-            if (managerWorking)
-            {
-                if (message.length() == 0)
+                //System.out.println("!!!");
+                if (simulatorWorking)
                 {
-                    managerWorking = false;
                     continue;
                 }
-                char c = message.charAt(0);
-                switch (c)
+                
+                //System.out.println("!!!!!");
+
+                String message = (String)messageQueue.remove();
+                managerWorking = message != null;
+                boolean needNotify = false;
+                if (managerWorking)
                 {
-                case 'S':
-                    step();
-                    break;
-                case 'R':
-                    reset();
-                    break;
-                case 'T':
-                    terminate();
-                    break;
-                case 'P':
-                    pause();
-                    break;
-                case 'C':
-                    start();
-                    break;
-                case 'B':
-                    breakpoint(Integer.parseInt(message.substring(1)));
-                    break;
-                default:
-                    System.err.println(
-                        "MessageManager: Unexpected message " + c);
+                    //System.out.println("?????");
+                    if (message.length() == 0)
+                    {
+                        managerWorking = false;
+                        continue;
+                    }
+                    char c = message.charAt(0);
+                    switch (c)
+                    {
+                    case 'S':
+                        step();
+                        break;
+                    case 'R':
+                        needNotify = reset();
+                        break;
+                    case 'T':
+                        terminate();
+                        break;
+                    case 'P':
+                        pause();
+                        break;
+                    case 'C':
+                        needNotify = startRun();
+                        break;
+                    case 'B':
+                        breakpoint(Integer.parseInt(message.substring(1)));
+                        break;
+                    default:
+                        System.err.println(
+                            "MessageManager: Unexpected message " + c);
+                    }
+                    managerWorking = false;
+
+                    if (needNotify)
+                    {
+                        frm.notifyProgram();
+                    }
                 }
-                managerWorking = false;
             }
-        }
+        });
     }
 
     // to modify machine state: must hold managerWorking lock.
-    private void step()
+    static private void step()
     {
         machine.stepOperate();
     }
 
-    private void reset()
+    static private boolean reset()
     {
         terminate();
-        start();
+        return startRun();
     }
 
-    private void terminate()
+    static private void terminate()
     {
         initInfo.resetMachine(machine);
-        notifyQueue.add("T");
+        //notifyQueue.add("T");
     }
 
-    private void pause()
+    static private void pause()
     {
         // machine supports only step operate, so "pause" doesn't make sense.
         // we will just notify the program to update UI.
-        notifyQueue.add("P");
+        //notifyQueue.add("P");
     }
 
-    private void start()
+    static private boolean startRun()
     {
         String message;
         while (machine.isRunnable())
@@ -419,16 +431,17 @@ public class MachineManager implements Runnable
                     char c = message.charAt(0);
                     if (c == 'T' || c == 'P')
                     {
-                        break;
+                        return false;
                     }
                 }
                 messageQueue.remove();
             }
             machine.stepOperate();
         }
+        return true;
     }
 
-    private void breakpoint(int index)
+    static private void breakpoint(int index)
     {
         machine.turnBreakpointState(index);
     }

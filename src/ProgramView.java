@@ -10,6 +10,7 @@ import java.text.*;
 class CodeLinePane extends JPanel
 {
     int lineIndex;
+    int status;
     int transparent;
     RISCVInstruction inst;
 
@@ -57,6 +58,8 @@ class CodeLinePane extends JPanel
     JLabel lblInst;
     JLabel lblParam;
 
+    boolean editable = true;
+
     public CodeLinePane(
         RISCVInstruction inst, int lineIndex, int pcIndex, int transparent)
     {
@@ -83,6 +86,7 @@ class CodeLinePane extends JPanel
         this.setLayout(null);
         this.setPreferredSize(new Dimension(840, 24));
         this.setBackground(backgroundNormal[transparent]);
+        this.status = 0;
 
         placeComponents();
 
@@ -105,22 +109,16 @@ class CodeLinePane extends JPanel
             @Override
             public void mouseClicked(MouseEvent e)
             {
-                if (!inlblStatus(e.getX(), e.getY()))
+                if (!inlblStatus(e.getX(), e.getY()) || !editable)
                 {
                     return;
                 }
 
                 if (e.getButton() == MouseEvent.BUTTON1)
                 {
-                    Icon current = lblStatus.getIcon();
-                    for (int i = 0; i < 4; ++i)
-                    {
-                        if (current == statusPic[transparent][i])
-                        {
-                            lblStatus.setIcon(
-                                statusPic[transparent][i ^ 1]);
-                        }
-                    }
+                    //System.out.println(status + "");
+                    status ^= 1;
+                    lblStatus.setIcon(statusPic[transparent][status]);
                 }
             }
         });
@@ -160,7 +158,8 @@ class CodeLinePane extends JPanel
             ind += 2;
         }
 
-        lblStatus.setIcon(statusPic[transparent][ind]);
+        status = ind;
+        lblStatus.setIcon(statusPic[transparent][status]);
         repaint();
     }
 
@@ -421,48 +420,18 @@ public class ProgramView extends JPanel
         });
     }
 
+    public void setEditable(boolean editable)
+    {
+        for (int i = 0; i < codeLines.length; ++i)
+        {
+            codeLines[i].editable = editable;
+        }
+    }
 
     public void bindMachine(RISCVMachine machine)
     {
         this.machine = machine;
         this.instructions = machine.instructions;
-
-        /*for (int j = 0; j < this.instructions.length; ++j)
-        {
-            String assembly = this.instructions[j].asm;
-
-            String inst;
-            String param;
-            int i = 0;
-            for (; i < assembly.length(); ++i)
-            {
-                if (isWhiteSpace(assembly.charAt(i)))
-                {
-                    break;
-                }
-            }
-            inst = assembly.substring(0, i);
-
-            if (i != assembly.length())
-            {
-                for (; i < assembly.length(); ++i)
-                {
-                    if (!isWhiteSpace(assembly.charAt(i)))
-                    {
-                        break;
-                    }
-                }
-                param = highLight(assembly.substring(i));
-
-                //param = colorText[transparent] + param + colorTextSuffix;
-                //lblParam.setText(highLight(param));
-            }
-            else
-            {
-                param = "";
-            }
-            instructions[j].asm = inst + " " + param;
-        }*/
 
         refreshAtPC();
     }
@@ -506,10 +475,6 @@ public class ProgramView extends JPanel
         }
         return instructions[index];
     }
-
-    // * deprecated
-    // use JScrollPane to place the components is ok, but needs
-    // setPreferredSize() (setBounds doesn't make sense)
 
     static public void main(String[] args)
     {

@@ -18,10 +18,10 @@ class RISCVSimulatorFrame extends SFrame
     // the original data block was modified by someone else, simply repaint the
     // DataViewFrame will force the components to show the modified data.
     
-    DataViewFrame generalRegFrame;
-    DataViewFrame floatRegFrame;
-    DataViewFrame symbolFrame;
-    DataViewFrame memoryFrame;
+    TableGeneralRegViewFrame generalRegFrame;
+    TableFloatRegViewFrame floatRegFrame;
+    TableSymbolViewFrame symbolFrame;
+    TableMemoryViewFrame memoryFrame;
 
     ProgramView programView;
 
@@ -71,6 +71,7 @@ class RISCVSimulatorFrame extends SFrame
                 }
 
                 System.out.println("ELF loaded");
+                setDebugOptionState(STATE_RUNNABLE);
             }
         }
     };
@@ -92,7 +93,12 @@ class RISCVSimulatorFrame extends SFrame
         {
             if (MachineManager.checkRunnable())
             {
-                // step..
+                updateMachine();
+                setDebugOptionState(STATE_RUNNING);
+                MachineManager.messageQueue.add("S");
+                MachineManager.sleepIgnoreInterrupt(100);
+                refreshState();
+                setDebugOptionState(STATE_RUNNABLE);
                 return;
             }
             Util.reportError(
@@ -105,12 +111,15 @@ class RISCVSimulatorFrame extends SFrame
         @Override
         public void actionPerformed(ActionEvent e)
         {
-            if (MachineManager.checkMachine())
+            if (MachineManager.checkRunnable())
             {
-                // run...
+                updateMachine();
+                setDebugOptionState(STATE_RUNNING);
+                MachineManager.messageQueue.add("R");
                 return;
             }
-            Util.reportError("未载入ELF文件。");
+            Util.reportError(
+                "虚拟机无法继续运行，请查看程序状态，并使用\"运行\"选项重启虚拟机。");
         }
     };
     SMenuItem mnuTerminate;
@@ -119,7 +128,9 @@ class RISCVSimulatorFrame extends SFrame
         @Override
         public void actionPerformed(ActionEvent e)
         {
-
+            MachineManager.messageQueue.add("T");
+            refreshState();
+            setDebugOptionState(STATE_RUNNABLE);
         }
     };
     SMenuItem mnuPause;
@@ -128,7 +139,9 @@ class RISCVSimulatorFrame extends SFrame
         @Override
         public void actionPerformed(ActionEvent e)
         {
-
+            MachineManager.messageQueue.add("P");
+            refreshState();
+            setDebugOptionState(STATE_RUNNABLE);
         }
     };
     SMenuItem mnuContinue;
@@ -137,16 +150,15 @@ class RISCVSimulatorFrame extends SFrame
         @Override
         public void actionPerformed(ActionEvent e)
         {
-
-        }
-    };
-    SMenuItem mnuBreakpoint;
-    ActionListener alsBreakpoint = new ActionListener()
-    {
-        @Override
-        public void actionPerformed(ActionEvent e)
-        {
-
+            if (MachineManager.checkRunnable())
+            {
+                updateMachine();
+                setDebugOptionState(STATE_RUNNING);
+                MachineManager.messageQueue.add("C");
+                return;
+            }
+            Util.reportError(
+                "虚拟机无法继续运行，请查看程序状态，并使用\"运行\"选项重启虚拟机。");
         }
     };
     SMenu mnuView;
@@ -261,20 +273,28 @@ class RISCVSimulatorFrame extends SFrame
         switch (state)
         {
         case STATE_RUNNING:
+            programView.setEditable(false);
             mnuStep.setEnabled(false);
             mnuRun.setEnabled(false);
             mnuTerminate.setEnabled(true);
             mnuPause.setEnabled(true);
             mnuContinue.setEnabled(false);
-            //mnuBreakpoint.setEnabled(false);
+            memoryFrame.setEnabled(false);
+            generalRegFrame.setEnabled(false);
+            floatRegFrame.setEnabled(false);
+            symbolFrame.setEnabled(false);
             break;
         case STATE_RUNNABLE:
+            programView.setEditable(true);
             mnuStep.setEnabled(true);
             mnuRun.setEnabled(true);
             mnuTerminate.setEnabled(false);
             mnuPause.setEnabled(false);
             mnuContinue.setEnabled(true);
-            //mnuBreakpoint.setEnabled(true);
+            memoryFrame.setEnabled(true);
+            generalRegFrame.setEnabled(true);
+            floatRegFrame.setEnabled(true);
+            symbolFrame.setEnabled(true);
             break;
         case STATE_NOTREADY:
             mnuStep.setEnabled(false);
@@ -282,7 +302,6 @@ class RISCVSimulatorFrame extends SFrame
             mnuTerminate.setEnabled(false);
             mnuPause.setEnabled(false);
             mnuContinue.setEnabled(false);
-            //mnuBreakpoint.setEnabled(false);
             break;
         }
     } 
@@ -302,6 +321,12 @@ class RISCVSimulatorFrame extends SFrame
             MachineManager.snapshot.symbol);
     }
 
+    public void notifyProgram()
+    {
+        refreshState();
+        setDebugOptionState(STATE_RUNNABLE);
+    }
+
     private void refreshState()
     {
         long len = MachineManager.snapshot.memoryFrag.length;
@@ -313,6 +338,7 @@ class RISCVSimulatorFrame extends SFrame
         generalRegFrame.resetTable();
         floatRegFrame.resetTable();
         memoryFrame.resetTable();
+        programView.refreshAtPC();
     }
 
     private void updateMachine()
@@ -334,6 +360,7 @@ public class RISCVSimulator
     public static void init()
     {
         setCurrrentLookAndFeel();
+        MachineManager.instance.start();
     }
 
     public static void setCurrrentLookAndFeel()
@@ -358,6 +385,7 @@ public class RISCVSimulator
             public void run()
             {
                 RISCVSimulatorFrame instance = new RISCVSimulatorFrame();
+                MachineManager.frm = instance;
                 instance.show();
             }
         }.run();

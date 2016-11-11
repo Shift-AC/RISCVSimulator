@@ -59,6 +59,8 @@ class TableMemoryViewFrame extends TableDataViewFrame
     
     static String[] columnNames;
 
+    long startAddress;
+
     static
     {
         columnNames = new String[columnCount];
@@ -150,6 +152,7 @@ class TableMemoryViewFrame extends TableDataViewFrame
 
     public void resetTable(long startAddress)
     {
+        this.startAddress = startAddress;
         save();
         MachineManager.snapshot.recordMemory(startAddress);
         
@@ -164,6 +167,11 @@ class TableMemoryViewFrame extends TableDataViewFrame
         pneTable = new JScrollPane(table);
         add(pneTable);
         pneTable.setBounds(0, 30, width, height - 30);
+    }
+
+    public void resetTable()
+    {
+        resetTable(this.startAddress);
     }
 
     static private DefaultTableModel getModel(
@@ -224,6 +232,7 @@ class TableMemoryViewFrame extends TableDataViewFrame
             }
         }
 
+        /*
         for (int i = 0; i < dataMatrix.length; ++i)
         {
             for (int j = 0; j < dataMatrix[i].length; ++j)
@@ -231,7 +240,7 @@ class TableMemoryViewFrame extends TableDataViewFrame
                 System.out.printf(dataMatrix[i][j] + " ");
             }
             System.out.println("");
-        }
+        }*/
         return dataMatrix;
     }
 }
@@ -292,7 +301,6 @@ class TableGeneralRegViewFrame extends TableDataViewFrame
             @Override
             public boolean isCellEditable(int row, int column)
             {
-                System.out.println(MachineManager.snapshot.generalRegister[2]);
                 return column != 0;
             }
         };

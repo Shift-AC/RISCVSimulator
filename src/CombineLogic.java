@@ -163,7 +163,6 @@ class MemoryManageUnit extends CombineLogic
             if (isEffectiveAddress(segment, address))
             {
                 data = segment.memory[(int)(address - segment.startAddress)];
-                System.out.println(data + " ? " + address);
                 if (isUnsigned)
                     return new Long(data & 0x0FF);
                 else
