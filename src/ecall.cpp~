@@ -26,11 +26,11 @@ int main()
 	{
 		cin >> No >> a0 >> a1 >> a2 >> a3;
 		//scanf("%i%lli%lli%lli%lli", &No, &a0, &a1, &a2, &a3);
-		//int pid = fork();
-		//if (pid == 0)
-		//{
-		//	while (1);
-		//}
+		int pid = fork();
+		if (pid == 0)
+		{
+			while (1);
+		}
 
 		if (No == 214) printf("%i ", heapStAds += a0);     			//sbrk
 		if (No == 80) printf("%i ", isatty(a0));	

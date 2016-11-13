@@ -134,6 +134,15 @@ class ConfigFile
             String line;
             while ((line = is.readLine()) != null)
             {
+                if (line == "")
+                {
+                    continue;
+                }
+                if (line.charAt(0) == '#')
+                {
+                    continue;
+                }
+
                 Config tmp;
                 try
                 {
@@ -216,6 +225,8 @@ class Config
                 "Illegal value " + line + " for config type " + 
                 myType.getType());
         }
+
+        //System.err.println("Config: " + name);
     }
 
     public Object getValue()

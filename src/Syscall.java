@@ -8,11 +8,7 @@ public abstract class Syscall
     long num;
     String name;
 
-    public Syscall()
-    {
-        this.name = getClass().getName().substring(name.lastIndexOf('.') + 4);
-    }
-
+    public Syscall() {}
     abstract public void call(RISCVMachine machine);
 }
 
@@ -29,8 +25,24 @@ class NativeSyscall extends Syscall
             String nativeProgram = "bin/syscallManager";
             Process ps = Runtime.getRuntime().exec(nativeProgram);
             stdout = new DataInputStream(ps.getInputStream());
+            InputStream out = ps.getInputStream();
             stderr = new DataInputStream(ps.getErrorStream());
             stdin = ps.getOutputStream();
+            stdin.write("214 0 0 0 0".getBytes());
+            stdin.flush();
+        try
+        {
+            //while (stdout.available() == 0);
+            //System.out.println("??");
+            //machine.generalRegister[10] = 
+            out.read();
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            //Util.reportErrorAndExit("致命错误：无法取得系统调用返回值");
+        }
+            System.out.println("???((()))");
         }
         catch (Exception e)
         {
@@ -65,20 +77,34 @@ class NativeSyscall extends Syscall
     protected byte[][] getMessages(RISCVMachine machine)
     {
         StringBuilder sb = new StringBuilder();
-        long[] generalRegister = machine.generalRegister;
-        sb.append(generalRegister[17] + " ");
-        sb.append(generalRegister[10] + " ");
-        sb.append(generalRegister[11] + " ");
-        sb.append(generalRegister[12] + " ");
-        sb.append(generalRegister[13] + "");
+        if (machine == null)
+        {
+            sb.append(num + " 0 0 0 0");
+        }
+        else
+        {
+            long[] generalRegister = machine.generalRegister;
+            sb.append(num + " ");
+            sb.append(generalRegister[10] + " ");
+            sb.append(generalRegister[11] + " ");
+            sb.append(generalRegister[12] + " ");
+            sb.append(generalRegister[13] + "");
+            System.out.println(sb);
+        }
         byte[][] messages = new byte[1][];
         messages[0] = sb.toString().getBytes();
         return messages;
     }
     protected void setReturnValue(RISCVMachine machine)
     {
+        if (machine == null)
+        {
+            return;
+        }
         try
         {
+            //while (stdout.available() == 0);
+            System.out.println("??");
             machine.generalRegister[10] = stdout.readLong();
         }
         catch (Exception e)
@@ -227,6 +253,7 @@ class SYSlseek extends NativeSyscall
 
 class SYSread extends StreamReturnedNativeSyscall
 {
+    @Override
     protected void setReturnValue(RISCVMachine machine)
     {
         super.setReturnValue(machine);
@@ -242,6 +269,20 @@ class SYSread extends StreamReturnedNativeSyscall
 
 class SYSwrite extends StreamParameteredNativeSyscall
 {
+    @Override
+    public void call(RISCVMachine machine)
+    {
+        long fd = machine.generalRegister[10];
+        if (fd == 1 || fd == 2)
+        {
+            MachineManager.console.writeToScreen(getParamStream(machine));
+        }
+        else
+        {
+            super.call(machine);
+        }
+    }
+    @Override
     protected byte[] getParamStream(RISCVMachine machine)
     {
         long address = machine.generalRegister[11];
@@ -276,6 +317,40 @@ class SYSexit extends Syscall
     public void call(RISCVMachine machine)
     {
         machine.machineStateRegister = RISCVMachine.MACHINE_STAT[3].stat;
+    }
+}
+
+//pseudo-syscalls
+class SYSsetstarttime extends NativeSyscall
+{
+    public SYSsetstarttime()
+    {
+        this.name = new String("setstarttime");
+        this.num = 2147483647;
+    }
+}
+
+class SYSstdin extends StreamParameteredNativeSyscall
+{
+    byte[] bytesToWrite = null;
+    public SYSstdin()
+    {
+        this.name = new String("stdin");
+        this.num = 2147483646;
+    }
+    @Override
+    protected byte[] getParamStream(RISCVMachine machine)
+    {
+        return bytesToWrite;
+    }
+}
+
+class SYSclosemanager extends NativeSyscall
+{
+    public SYSclosemanager()
+    {
+        this.name = new String("closemanager");
+        this.num = 2147483645;
     }
 }
 

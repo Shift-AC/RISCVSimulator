@@ -216,6 +216,13 @@ public class RISCVMachine
 
     public boolean isRunnable()
     {
-        return true;
+        return machineStateRegister == MACHINE_STAT[0].stat;
+    }
+
+    int getPCIndex()
+    {
+        long offset = programCounter - memory[SEGMENT_TEXT].startAddress;
+        
+        return (int)(offset >>> 2);
     }
 }

@@ -1,5 +1,5 @@
 1.0
-I syscallCount=11
+I syscallCount=9
 S syscallName0=open
 I syscallNum0=1024
 S syscallName1=lseek
@@ -16,5 +16,5 @@ S syscallName6=sbrk
 I syscallNum6=214
 S syscallName7=times
 I syscallNum7=169
-S syscallName9=exit
-I syscallNum9=93
+S syscallName8=exit
+I syscallNum8=93

@@ -22,6 +22,7 @@ class RISCVSimulatorFrame extends SFrame
     TableFloatRegViewFrame floatRegFrame;
     TableSymbolViewFrame symbolFrame;
     TableMemoryViewFrame memoryFrame;
+    ConsoleFrame consoleFrame;
 
     ProgramView programView;
 
@@ -70,7 +71,6 @@ class RISCVSimulatorFrame extends SFrame
                     bindMachine(machine);
                 }
 
-                System.out.println("ELF loaded");
                 setDebugOptionState(STATE_RUNNABLE);
             }
         }
@@ -198,6 +198,15 @@ class RISCVSimulatorFrame extends SFrame
             symbolFrame.setVisible(true);
         }
     };
+    SMenuItem mnuConsole;
+    ActionListener alsConsole = new ActionListener()
+    {
+        @Override
+        public void actionPerformed(ActionEvent e)
+        {
+            consoleFrame.setVisible(true);
+        }
+    };
 
     WindowAdapter wlsFrame = new WindowAdapter()
     {
@@ -217,6 +226,8 @@ class RISCVSimulatorFrame extends SFrame
         initializeMenu();
         setDebugOptionState(STATE_NOTREADY);
 
+        consoleFrame = new ConsoleFrame();
+
         //pneFrame.
         setLayout(new GridLayout(1, 1));
         programView = new ProgramView();
@@ -225,6 +236,7 @@ class RISCVSimulatorFrame extends SFrame
 
     void checkExit()
     {
+        Util.closemanager.call(null);
         System.exit(0);
     }
 
@@ -240,7 +252,7 @@ class RISCVSimulatorFrame extends SFrame
         mnuExit.addActionListener(alsExit);
 
         mnuDebug = new SMenu("调试(D)", 'D', menu);
-        mnuStep = new SMenuItem("单步调试(S)", 'S', mnuDebug);
+        mnuStep = new SMenuItem("下一指令(N)", 'N', mnuDebug);
         mnuStep.addActionListener(alsStep);
         mnuRun = new SMenuItem("运行(R)", 'R', mnuDebug);
         mnuRun.addActionListener(alsRun);
@@ -260,8 +272,10 @@ class RISCVSimulatorFrame extends SFrame
         mnuGeneralRegister.addActionListener(alsGeneralRegister);
         mnuFloatRegister = new SMenuItem("浮点寄存器(F)", 'F', mnuView);
         mnuFloatRegister.addActionListener(alsFloatRegister);
-        mnuSymbolTable = new SMenuItem("符号表(T)", 'T', mnuView);
+        mnuSymbolTable = new SMenuItem("符号表(S)", 'S', mnuView);
         mnuSymbolTable.addActionListener(alsSymbolTable);
+        mnuConsole = new SMenuItem("控制台(T)", 'T', mnuView);
+        mnuConsole.addActionListener(alsConsole);
     }
 
     private static final int
@@ -295,6 +309,7 @@ class RISCVSimulatorFrame extends SFrame
             generalRegFrame.setEnabled(true);
             floatRegFrame.setEnabled(true);
             symbolFrame.setEnabled(true);
+            //mnuConsole.setEnabled(true);
             break;
         case STATE_NOTREADY:
             mnuStep.setEnabled(false);
@@ -302,6 +317,7 @@ class RISCVSimulatorFrame extends SFrame
             mnuTerminate.setEnabled(false);
             mnuPause.setEnabled(false);
             mnuContinue.setEnabled(false);
+            //mnuConsole.setEnabled(false);
             break;
         }
     } 
@@ -319,6 +335,18 @@ class RISCVSimulatorFrame extends SFrame
             MachineManager.snapshot.floatRegister);
         symbolFrame = new TableSymbolViewFrame(
             MachineManager.snapshot.symbol);
+        consoleFrame.reset();
+
+        // debug
+        testSyscall();
+    }
+
+    private void testSyscall()
+    {
+        MachineController controller = MachineManager.machine.controller;
+
+        Syscall syscall = controller.findSyscall(214);
+        syscall.call(MachineManager.machine);
     }
 
     public void notifyProgram()
@@ -352,10 +380,6 @@ class RISCVSimulatorFrame extends SFrame
 
 public class RISCVSimulator
 {
-    public static void checkFile()
-    {
-        
-    }
 
     public static void init()
     {

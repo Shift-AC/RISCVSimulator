@@ -61,7 +61,7 @@ class CodeLinePane extends JPanel
     boolean editable = true;
 
     public CodeLinePane(
-        RISCVInstruction inst, int lineIndex, int pcIndex, int transparent)
+        RISCVInstruction instr, int lineIndex, int pcIndex, int transparent)
     {
         super();
         this.transparent = transparent;
@@ -118,12 +118,16 @@ class CodeLinePane extends JPanel
                 {
                     //System.out.println(status + "");
                     status ^= 1;
+                    if (inst != null)
+                    {
+                        inst.isBreakpoint = !inst.isBreakpoint;
+                    }
                     lblStatus.setIcon(statusPic[transparent][status]);
                 }
             }
         });
 
-        this.refresh(inst, lineIndex, pcIndex);
+        this.refresh(instr, lineIndex, pcIndex);
         repaint();
     }
 
@@ -438,7 +442,7 @@ public class ProgramView extends JPanel
 
     public void refreshAtPC()
     {
-        startIndex = getPCIndex();
+        startIndex = machine.getPCIndex();
         if (startIndex + codeLines.length > instructions.length)
         {
             startIndex = instructions.length - codeLines.length;
@@ -451,20 +455,12 @@ public class ProgramView extends JPanel
     public void refresh()
     {
         int i = 0;
-        int pcIndex = getPCIndex();
+        int pcIndex = machine.getPCIndex();
         for (; i < codeLines.length; ++i)
         {
             int offset = i + startIndex;
             codeLines[i].refresh(getInstruction(offset), offset, pcIndex);
         }
-    }
-
-    private int getPCIndex()
-    {
-        long offset = machine.programCounter - 
-            machine.memory[RISCVMachine.SEGMENT_TEXT].startAddress;
-        
-        return (int)(offset >>> 2);
     }
  
     private RISCVInstruction getInstruction(int index)

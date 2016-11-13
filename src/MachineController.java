@@ -58,63 +58,6 @@ abstract class MachineController extends CombineLogic
 
         return true;
     }
-}
-
-class DefMachineController extends MachineController
-{
-    long originalProgramCounter;
-    public DefMachineController()
-    {
-        super();
-    }
-
-    public DefMachineController(RISCVMachine machine)
-    {
-        super(machine);
-        originalProgramCounter = machine.programCounter;
-    }
-
-    @Override
-    public void parse()
-    {
-        //System.out.println("???");
-        machine.programCounter += 4;
-    }
-
-    @Override
-    public void reset()
-    {
-        machine.programCounter = originalProgramCounter;
-    }
-
-    @Override
-    protected void initSyscall()
-    {
-        int syscallCount = ((Integer)(Util.configManager.getConfig(
-            "DefMachineController.syscallCount"))).intValue();
-        syscalls = new Syscall[syscallCount];
-        
-        String syscallName = null;
-        try
-        {
-            for (int i = 0; i < syscallCount; ++i)
-            {
-                syscallName = (String)(Util.configManager.getConfig(
-                    "DefMachineController.syscallName" + i));
-                syscalls[i] = 
-                    (Syscall)Class.forName("SYS" + syscallName).newInstance();
-                syscalls[i].num = ((Integer)(Util.configManager.getConfig(
-                    "DefMachineController.syscallNum" + i))).intValue();
-                syscalls[i].name = syscallName;
-            }
-        }
-        catch (Exception e)
-        {
-            e.printStackTrace();
-            Util.reportErrorAndExit(
-                "致命错误：无法读取系统调用信息\n类名：" + syscallName);
-        }
-    }
 
     public Syscall findSyscall(long num)
     {
@@ -134,5 +77,70 @@ class DefMachineController extends MachineController
         long num = 0;
 
         findSyscall(num).call(this.machine);
+    }
+}
+
+class DefMachineController extends MachineController
+{
+    public DefMachineController()
+    {
+        super();
+        initSyscall();
+    }
+
+    public DefMachineController(RISCVMachine machine)
+    {
+        super(machine);
+        initSyscall();
+    }
+
+    @Override
+    public void parse()
+    {
+        //System.out.println("???");
+        if (machine.getPCIndex() == machine.instructions.length - 1)
+        {
+            machine.machineStateRegister = RISCVMachine.MACHINE_STAT[3].stat;
+            return;
+        }
+        machine.programCounter += 4;
+    }
+
+    @Override
+    public void reset()
+    {
+        machine.programCounter = 
+            machine.memory[RISCVMachine.SEGMENT_TEXT].startAddress;
+    }
+
+    @Override
+    protected void initSyscall()
+    {
+        int syscallCount = ((Integer)(Util.configManager.getConfig(
+            "DefMachineController.syscallCount"))).intValue();
+        syscalls = new Syscall[syscallCount];
+        
+        String syscallName = null;
+        String syscallClass = null;
+        try
+        {
+            for (int i = 0; i < syscallCount; ++i)
+            {
+                syscallName = (String)(Util.configManager.getConfig(
+                    "DefMachineController.syscallName" + i));
+                syscallClass = Util.packageName + ".SYS" + syscallName;
+                syscalls[i] = 
+                    (Syscall)Class.forName(syscallClass).newInstance();
+                syscalls[i].num = ((Integer)(Util.configManager.getConfig(
+                    "DefMachineController.syscallNum" + i))).intValue();
+                syscalls[i].name = syscallName;
+            }
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            Util.reportErrorAndExit(
+                "致命错误：无法读取系统调用信息\n类名：" + "SYS" + syscallName);
+        }
     }
 }

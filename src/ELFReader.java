@@ -400,7 +400,7 @@ public class ELFReader
 	}
 
 	public void initPC() {
-		machine.programCounter = elfHeader.e_entry;
+        machine.programCounter = elfHeader.e_entry;
 	}
 
 }

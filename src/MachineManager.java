@@ -199,7 +199,7 @@ public class MachineManager extends Thread
             for (int i = 0; i < segmentCount; ++i)
             {
                 byte[] dest = machine.memory[getSegmentIndex(i)].memory;
-                for (int j = 0; j < savedSegments[i].memory.length; ++i)
+                for (int j = 0; j < savedSegments[i].memory.length; ++j)
                 {
                     dest[j] = savedSegments[i].memory[j];
                 }
@@ -224,6 +224,7 @@ public class MachineManager extends Thread
     static RISCVMachine machine = null;
     static public MachineStateSnapshot snapshot = null;
     static private MachineInitInfo initInfo = null;
+    static ConsoleFrame console = new ConsoleFrame();
 
     static private boolean simulatorWorking = false; 
     static private boolean managerWorking = false;
@@ -387,7 +388,10 @@ public class MachineManager extends Thread
     // to modify machine state: must hold managerWorking lock.
     static private void step()
     {
-        machine.stepOperate();
+        if (machine.isRunnable())
+        {
+            machine.stepOperate();
+        }
     }
 
     static private boolean reset()
@@ -409,8 +413,13 @@ public class MachineManager extends Thread
         //notifyQueue.add("P");
     }
 
+    static SYSsetstarttime setstarttime = new SYSsetstarttime();
     static private boolean startRun()
     {
+        step();
+
+        setstarttime.call(null);
+
         String message;
         while (machine.isRunnable())
         {
@@ -426,6 +435,10 @@ public class MachineManager extends Thread
                     }
                 }
                 messageQueue.remove();
+            }
+            if (machine.instructions[machine.getPCIndex()].isBreakpoint)
+            {
+                return true;
             }
             machine.stepOperate();
         }

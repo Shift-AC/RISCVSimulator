@@ -67,7 +67,7 @@ class TableMemoryViewFrame extends TableDataViewFrame
         columnNames[0] = "";
         for (int i = 1; i < columnCount; ++i)
         {
-            columnNames[i] = "+" + i;
+            columnNames[i] = "+" + (i - 1);
         }
     }
 

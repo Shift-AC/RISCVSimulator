@@ -66,10 +66,11 @@ class Util
         "MemoryViewFrame",
         "MachineInitInfo",
         "ProgramView",
-        "CodeLinePane"
+        "CodeLinePane",
+        "DefMachineController"
     };
     static ConfigManager configManager;
-    
+    static SYSclosemanager closemanager = new SYSclosemanager();
     static void reportException(String description, Exception e)
     {
         JOptionPane.showMessageDialog(
@@ -91,12 +92,14 @@ class Util
     static void reportErrorAndExit(String message)
     {
         reportError(message);
+        closemanager.call(null);
         System.exit(0);
     }
 
     static void reportExceptionAndExit(String description, Exception e)
     {
         reportException(description, e);
+        closemanager.call(null);
         System.exit(0);
     }
 
