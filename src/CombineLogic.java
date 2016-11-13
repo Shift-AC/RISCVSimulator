@@ -1028,4 +1028,3 @@ class MachineState extends CombineLogic
         output[1] = new Signal("invalidAddress", 0);
     }
 }
-

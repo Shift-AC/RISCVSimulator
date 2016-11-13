@@ -253,15 +253,6 @@ public class MachineManager extends Thread
         return MachineManager.machine.isRunnable();
     }
 
-    static void sleepIgnoreInterrupt(long time)
-    {
-        try
-        {
-            Thread.sleep(time);
-        }
-        catch (Exception e) {}
-    }
-
     /*
      * deprecated since there's no need to read the machine itself.
      * use updateSnapshot instead.
@@ -281,7 +272,7 @@ public class MachineManager extends Thread
             {
                 return machine;
             }
-            sleepIgnoreInterrupt(50);
+            Util.sleepIgnoreInterrupt(50);
         }
         return null;
     }
@@ -306,7 +297,7 @@ public class MachineManager extends Thread
                 simulatorWorking = false;
                 return true;
             }
-            sleepIgnoreInterrupt(50);
+            Util.sleepIgnoreInterrupt(50);
         }
 
         simulatorWorking = false;
@@ -325,7 +316,7 @@ public class MachineManager extends Thread
                 simulatorWorking = false;
                 return true;
             }
-            sleepIgnoreInterrupt(50);
+            Util.sleepIgnoreInterrupt(50);
         }
 
         simulatorWorking = false;
@@ -336,7 +327,7 @@ public class MachineManager extends Thread
     {
         super(()->
         {
-            for (; true; sleepIgnoreInterrupt(20))
+            for (; true; Util.sleepIgnoreInterrupt(20))
             {
                 //System.out.println("!!!");
                 if (simulatorWorking)

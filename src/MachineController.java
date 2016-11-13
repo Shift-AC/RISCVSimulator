@@ -90,6 +90,47 @@ class DefMachineController extends MachineController
     @Override
     protected void initSyscall()
     {
+        int syscallCount = ((Integer)(Util.configManager.getConfig(
+            "DefMachineController.syscallCount"))).intValue();
+        syscalls = new Syscall[syscallCount];
+        
+        String syscallName;
+        try
+        {
+            for (int i = 0; i < syscallCount; ++i)
+            {
+                syscallName = "SYS" + (String)(Util.configManager.getConfig(
+                    "DefMachineController.syscallName" + i));
+                syscalls[i] = (Syscall)Class.forName(syscallName).newInstance();
+                syscalls[i].num = ((Integer)(Util.configManager.getConfig(
+                    "DefMachineController.syscallNum" + i))).intValue();
+            }
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            Util.reportErrorAndExit(
+                "致命错误：无法读取系统调用信息\n类名：" + syscallName);
+        }
+    }
 
+    public Syscall findSyscall(long num)
+    {
+        for (int i = 0; i < syscallls.length; ++i)
+        {
+            if (syscalls[i].num == num)
+            {
+                return syscalls[i];
+            }
+        }
+        return null;
+    }
+
+    public void doSyscall()
+    {
+        // don't know which register to copy yet
+        long num = 0;
+
+        findSyscall(num).call(this.machine);
     }
 }

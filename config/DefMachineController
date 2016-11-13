@@ -1,0 +1,24 @@
+1.0
+I syscallCount=11
+S syscallName0=open
+I syscallNum0=1024
+S syscallName1=lseek
+I syscallNum1=62
+S syscallName2=read
+I syscallNum2=63
+S syscallName3=write
+I syscallNum3=64
+S syscallName4=fstat
+I syscallNum4=80
+S syscallName5=close
+I syscallNum5=57
+S syscallName6=isatty
+I syscallNum6=80
+S syscallName7=sbrk
+I syscallNum7=214
+S syscallName8=times
+I syscallNum8=169
+S syscallName9=gettimeofday
+I syscallNum9=169
+S syscallName10=exit
+I syscallNum10=93

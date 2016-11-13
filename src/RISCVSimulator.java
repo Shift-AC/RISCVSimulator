@@ -96,7 +96,7 @@ class RISCVSimulatorFrame extends SFrame
                 updateMachine();
                 setDebugOptionState(STATE_RUNNING);
                 MachineManager.messageQueue.add("S");
-                MachineManager.sleepIgnoreInterrupt(100);
+                Util.sleepIgnoreInterrupt(100);
                 refreshState();
                 setDebugOptionState(STATE_RUNNABLE);
                 return;

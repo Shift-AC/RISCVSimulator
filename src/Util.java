@@ -120,5 +120,14 @@ class Util
             reportExceptionAndExit("读取关键文件时遇到问题，错误信息:", ie);
         }
     }
+    
+    static void sleepIgnoreInterrupt(long time)
+    {
+        try
+        {
+            Thread.sleep(time);
+        }
+        catch (Exception e) {}
+    }
 
 }
