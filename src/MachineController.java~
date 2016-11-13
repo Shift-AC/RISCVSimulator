@@ -82,34 +82,16 @@ abstract class MachineController extends CombineLogic
 
 class DefMachineController extends MachineController
 {
-    CombineLogic
-        DECODER,
-        GENE_REG,
-        FLOAT_REG,
-        I_ALUMUX,
-        I_ALU,
-        F_ALU,
-        MMU,
-        STATE,
-        PC_UPDATE;
-
-    int insIndex;
-    int opcode;
-    int funct7;
-    int funct6;
-    int funct5;
-    int funct3;
-
     public DefMachineController()
     {
         super();
+        initSyscall();
     }
 
     public DefMachineController(RISCVMachine machine)
     {
         super(machine);
         initSyscall();
-        initCombineLogic();
     }
 
 
@@ -266,17 +248,6 @@ class DefMachineController extends MachineController
 
     @Override
     public void parse()
-    {
-        //System.out.println("???");
-        if (machine.getPCIndex() == machine.instructions.length - 1)
-        {
-            machine.machineStateRegister = RISCVMachine.MACHINE_STAT[3].stat;
-            return;
-        }
-        machine.programCounter += 4;
-    }
-
-    public void doParse()
     {
         long pcAddress = machine.programCounter;
         // pcAddress to insIndex

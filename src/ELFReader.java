@@ -236,10 +236,7 @@ public class ELFReader
 	{
 		return 
 			opcode == 0b0110011 ||
-			opcode == 0b0111011 ||
-			(opcode == 0b1010011 && (
-				funct7 == 0b0010000 ||
-				funct7 == 0b0010100));
+			opcode == 0b0111011;
 	}
 
 	static boolean isR4Instruction(int opcode)
@@ -310,15 +307,31 @@ public class ELFReader
 			opcode == 0b1101111;
 	}
 
-	static boolean isFZInstruction(int opcode)
+	static boolean isFZInstruction(int opcode, int funct7)
 	{
-		return false;
+		return
+			opcode == 0b1010011 && (
+				funct7 != 0b0101100 &&
+				funct7 != 0b1100000 &&
+				funct7 != 0b1110000 &&
+				funct7 != 0b1101000 &&
+				funct7 != 0b1111000);
+	}
+	static boolean isFJInstruction(int opcode, int funct7)
+	{
+		return
+			opcode == 0b1010011 && (
+				funct7 == 0b0101100 ||
+				funct7 == 0b1100000 ||
+				funct7 == 0b1110000 ||
+				funct7 == 0b1101000 ||
+				funct7 == 0b1111000);
 	}
 
 	/* use `parse` to open a ELF file and return it's standard output as an 
 	 * InputStream which can be read directly. 
 	 * on error, dump returns null.*/
-	InputStream dump(String fileName)
+        InputStream dump(String fileName)
 	{
 	    try
 	    {
@@ -382,8 +395,10 @@ public class ELFReader
 				machine.instructions[i] = new UInstruction();
 			else if (isUJInstruction(opcode))
 				machine.instructions[i] = new UJInstruction();
-			else if (isFZInstruction(opcode))
+			else if (isFZInstruction(opcode, funct7))
 				machine.instructions[i] = new FZInstruction();
+			else if (isFJInstruction(opcode, funct7))
+				machine.instructions[i] = new FJInstruction();
 			else {
 				hasInvalid = true;
 				machine.instructions[i] = new UnknownInstruction();
@@ -400,7 +415,7 @@ public class ELFReader
 	}
 
 	public void initPC() {
-        machine.programCounter = elfHeader.e_entry;
+		machine.programCounter = elfHeader.e_entry;
 	}
 
 }
@@ -672,3 +687,6 @@ class Elf64_Sym
 		return str.toString();
 	}
 }
+
+
+

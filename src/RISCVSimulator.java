@@ -338,7 +338,7 @@ class RISCVSimulatorFrame extends SFrame
         consoleFrame.reset();
 
         // debug
-        testSyscall();
+        //testSyscall();
     }
 
     private void testSyscall()

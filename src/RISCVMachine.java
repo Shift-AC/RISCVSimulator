@@ -117,11 +117,12 @@ public class RISCVMachine
     
     static MachineStat[] MACHINE_STAT;
     static {
-        MACHINE_STAT = new MachineStat[4];
-        MACHINE_STAT[0] = new MachineStat(0, "AOK");
-        MACHINE_STAT[1] = new MachineStat(1, "INS");
-        MACHINE_STAT[2] = new MachineStat(2, "ADR");
-        MACHINE_STAT[3] = new MachineStat(3, "HLT");
+        MACHINE_STAT = new MachineStat[5];
+        MACHINE_STAT[0] = new MachineStat(0, "AOK");    // OK
+        MACHINE_STAT[1] = new MachineStat(1, "INS");    // invalid instruction
+        MACHINE_STAT[2] = new MachineStat(2, "ADR");    // invalid memory address
+        MACHINE_STAT[3] = new MachineStat(3, "NAN");    // meet NAN operation
+        MACHINE_STAT[4] = new MachineStat(4, "HLT");    // halt
     }
 
     MemorySegment[] memory;

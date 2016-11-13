@@ -25,24 +25,8 @@ class NativeSyscall extends Syscall
             String nativeProgram = "bin/syscallManager";
             Process ps = Runtime.getRuntime().exec(nativeProgram);
             stdout = new DataInputStream(ps.getInputStream());
-            InputStream out = ps.getInputStream();
             stderr = new DataInputStream(ps.getErrorStream());
             stdin = ps.getOutputStream();
-            stdin.write("214 0 0 0 0".getBytes());
-            stdin.flush();
-        try
-        {
-            //while (stdout.available() == 0);
-            //System.out.println("??");
-            //machine.generalRegister[10] = 
-            out.read();
-        }
-        catch (Exception e)
-        {
-            e.printStackTrace();
-            //Util.reportErrorAndExit("致命错误：无法取得系统调用返回值");
-        }
-            System.out.println("???((()))");
         }
         catch (Exception e)
         {

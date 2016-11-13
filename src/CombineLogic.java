@@ -1,5 +1,8 @@
 package com.github.ShiftAC.RISCVSimulator;
 
+import java.math.*;
+import java.nio.*;
+
 class Signal
 {
     String name;
@@ -18,7 +21,10 @@ public abstract class CombineLogic
     Signal[] input = null;
     Signal[] output = null;
 
-    public CombineLogic() {}
+    public CombineLogic() 
+    {
+        //initSignals();
+    }
 
     abstract public void parse();
 
@@ -301,7 +307,6 @@ class MemoryManageUnit extends CombineLogic
     }
 }
 
-// TODO
 class Decoder extends CombineLogic
 {
     RISCVInstruction[] instructions;
@@ -395,6 +400,16 @@ class Decoder extends CombineLogic
         findOutputByName("rm").value = (long)ins.rm();
     }
 
+    void parseFJ(RISCVInstruction currentIns) {
+        FJInstruction ins = (FJInstruction)currentIns;
+        findOutputByName("funct5").value = (long)ins.funct5();
+        findOutputByName("dst").value = (long)ins.rd();
+        findOutputByName("src1").value = (long)ins.rs1();
+        findOutputByName("src2").value = (long)ins.rs2();
+        findOutputByName("fmt").value = (long)ins.fmt();
+        findOutputByName("rm").value = (long)ins.rm();
+    }
+
    public void parse() {
         int index = (int)findInputByName("insIndex").value;
         RISCVInstruction currentIns = instructions[index];
@@ -420,6 +435,8 @@ class Decoder extends CombineLogic
             parseUJ(currentIns);
         else if (currentIns instanceof FZInstruction)
             parseFZ(currentIns);
+        else if (currentIns instanceof FJInstruction)
+            parseFJ(currentIns);
         else
             findOutputByName("invalidIns").value = 1;
     }
@@ -439,9 +456,10 @@ class Decoder extends CombineLogic
     public void initSignals()
     {
         input = new Signal[1];
-        input[0] = new Signal("opcode", 0);
+        input[0] = new Signal("insIndex", 0);
 
         output = new Signal[14];
+        output[0] = new Signal("opcode", 0);
         output[0] = new Signal("funct7", 0);
         output[1] = new Signal("funct6", 0);
         output[2] = new Signal("funct5", 0);
@@ -453,7 +471,7 @@ class Decoder extends CombineLogic
         output[8] = new Signal("src3", 0);
         output[9] = new Signal("imm", 0);
         output[10] = new Signal("shamt", 0);
-        output[11] = new Signal("invalidIns", 1);
+        output[11] = new Signal("invalidIns", 0);
         output[12] = new Signal("fmt", 0);
         output[13] = new Signal("rm", 0);
     }
@@ -492,7 +510,6 @@ class GeneralRegisterFile extends CombineLogic
     public void parse() {
         int rs1 = (int)findInputByName("src1").value;
         int rs2 = (int)findInputByName("src2").value;
-        int rs3 = (int)findInputByName("src3").value;
         int rd = (int)findInputByName("dst").value;
         boolean read = findInputByName("gregRead").value == 1;
         boolean write = findInputByName("gregWrite").value == 1;
@@ -504,22 +521,18 @@ class GeneralRegisterFile extends CombineLogic
             if (length == 1) {
                 findOutputByName("val1").value = readByte(rs1).longValue();
                 findOutputByName("val2").value = readByte(rs2).longValue();
-                findOutputByName("val3").value = readByte(rs3).longValue();
             }
             else if (length == 2) {
                 findOutputByName("val1").value = readShort(rs1).longValue();
                 findOutputByName("val2").value = readShort(rs2).longValue();
-                findOutputByName("val3").value = readShort(rs3).longValue();
             }
             else if(length == 4) {
                 findOutputByName("val1").value = readInt(rs1).longValue();
                 findOutputByName("val2").value = readInt(rs2).longValue();
-                findOutputByName("val3").value = readInt(rs3).longValue();
             }
             else if(length == 8) {
                 findOutputByName("val1").value = readLong(rs1).longValue();
                 findOutputByName("val2").value = readLong(rs2).longValue();
-                findOutputByName("val3").value = readLong(rs3).longValue();
             }
         }
         if (write) {
@@ -541,20 +554,18 @@ class GeneralRegisterFile extends CombineLogic
 
     public void initSignals()
     {
-        input = new Signal[8];
+        input = new Signal[7];
         input[0] = new Signal("src1", 0);
         input[1] = new Signal("src2", 0);
-        input[2] = new Signal("src3", 0);
-        input[3] = new Signal("dst", 0);
-        input[4] = new Signal("gregRead", 0);
-        input[5] = new Signal("gregWrite", 0);
-        input[6] = new Signal("regData", 0);
-        input[7] = new Signal("regLength", 0);
+        input[2] = new Signal("dst", 0);
+        input[3] = new Signal("gregRead", 0);
+        input[4] = new Signal("gregWrite", 0);
+        input[5] = new Signal("regData", 0);
+        input[6] = new Signal("regLength", 0);
 
-        output = new Signal[3];
+        output = new Signal[2];
         output[0] = new Signal("val1", 0);
         output[1] = new Signal("val2", 0);
-        output[2] = new Signal("val3", 0);
     }
 }
 
@@ -571,6 +582,7 @@ class FloatRegisterFile extends CombineLogic
     public void parse() {
         int rs1 = (int)findInputByName("src1").value;
         int rs2 = (int)findInputByName("src2").value;
+        int rs3 = (int)findInputByName("src3").value;
         int rd = (int)findInputByName("dst").value;
         boolean read = findInputByName("fregRead").value == 1;
         boolean write = findInputByName("fregWrite").value == 1;
@@ -579,6 +591,7 @@ class FloatRegisterFile extends CombineLogic
         if (read) {
             findOutputByName("fval1").value = (long)floatRegister[rs1];
             findOutputByName("fval2").value = (long)floatRegister[rs2];
+            findOutputByName("fval3").value = (long)floatRegister[rs3];
         }
         if (write) {
             floatRegister[rd] = data;
@@ -599,17 +612,19 @@ class FloatRegisterFile extends CombineLogic
 
     public void initSignals()
     {
-        input = new Signal[6];
+        input = new Signal[7];
         input[0] = new Signal("src1", 0);
         input[1] = new Signal("src2", 0);
-        input[2] = new Signal("dst", 0);
-        input[3] = new Signal("fregRead", 0);
-        input[4] = new Signal("fregWrite", 0);
-        input[5] = new Signal("regData", 0);
+        input[2] = new Signal("src3", 0);
+        input[3] = new Signal("dst", 0);
+        input[4] = new Signal("fregRead", 0);
+        input[5] = new Signal("fregWrite", 0);
+        input[6] = new Signal("regData", 0);
 
-        output = new Signal[2];
+        output = new Signal[3];
         output[0] = new Signal("fval1", 0);
         output[1] = new Signal("fval2", 0);
+        output[2] = new Signal("fval3", 0);
     }
 }
 
@@ -763,8 +778,9 @@ class IntegerALUMux extends CombineLogic
         // ALUB: THE FOLLOWING CODE IS NOT EXCLUSIVE!
         long aluB;
         if (ELFReader.isIInstruction(opcode, funct3) ||
-            ELFReader.isSInstruction(opcode))
-             aluB = imm;                 //AUIPC
+            ELFReader.isSInstruction(opcode) ||  //Store
+            ELFReader.isUJInstruction(opcode))   //AUIPC
+             aluB = imm;
         else if (aluOp == IntegerALU.ALU_SLL ||
                 aluOp == IntegerALU.ALU_SRL ||
                 aluOp == IntegerALU.ALU_SRA)
@@ -827,64 +843,230 @@ class IntegerALU extends CombineLogic
         ALU_SRL = 101,
         ALU_SRA = 102;
 
+    // conditions
+    boolean less = false;
+    boolean equal = false;
+    boolean greater = false;
 
 
     public IntegerALU(RISCVMachine machine) {
         super();
     }
 
+    private byte[] long2byteArray(long num, boolean isUnsigned) {
+        int length = isUnsigned ? 9 : 8;
+        byte[] ba = new byte[length];
+        for (int i = length-1; i >= length-8; --i) {
+            ba[i] = (byte)(num & 0xFF);
+            num >>= 8;
+        }
+        return ba;
+    }
+    private long byteArray2Long(byte[] ba, int offset) {
+        long res = 0;
+        for (int i = offset; i < 8+offset; ++i) {
+            res = (res<<8) + (ba[i] & 0x0FF);
+        }
+        return res;
+    }
+
+    // signed word to long
+    private long SW2Long(long in) {
+        in &= 0xFFFFFFFF;
+        long mask = ((1 << 32) - 1) << 32;
+        return (in >> 31) != 0 ? mask : 0;
+    }
+
+    long longAdd(long val1, long val2, int length) {
+        long res;
+        if (length == 4) {
+            val1 &= 0xFFFFFFFF;
+            val2 &= 0xFFFFFFFF;
+            res = SW2Long(val1 + val2);
+        }
+        else {
+            res = val1 + val2;
+        }
+        return res;
+    }
+
+    long longSub(long val1, long val2, boolean isUnsigned, int length) {
+        long res;
+        if (length == 4) {
+            if (isUnsigned) {
+                val1 &= 0xFFFFFFFF;
+                val2 &= 0xFFFFFFFF;
+                res = (val1 - val2) & 0xFFFFFFFF;
+            }
+            else {
+                val1 = SW2Long(val1);
+                val2 = SW2Long(val2);
+                res = SW2Long(val1 - val2);
+        }
+        }
+        else {
+            res = val1 - val2;
+            // set CC only when 64-bit
+            if (isUnsigned) {
+                less = ((val1 >>> 32) < (val2 >>> 32)) ||
+                      (((val1 >>> 32) == (val2 >>> 32)) &&
+                            ((val1 & 0xFFFFFFFF) < (val2 & 0xFFFFFFFF)));
+                equal = (val1 == val2);
+                greater = ((val1 >>> 32) > (val2 >>> 32)) ||
+                      (((val1 >>> 32) == (val2 >>> 32)) &&
+                            ((val1 & 0xFFFFFFFF) > (val2 & 0xFFFFFFFF)));
+            }
+            else {
+                less = (val1 < val2);
+                equal = (val1 == val2);
+                greater = (val1 > val2);
+            }
+        }
+
+        return res;
+    }
+
+
+    long longMult(long val1, long val2,
+                        boolean isUnsigned, boolean isHigh, int length) {
+        // truncate and then extend
+        if (length == 4) {
+            val1 &= 0xFFFFFFFF;
+            val2 &= 0xFFFFFFFF;
+            if (isUnsigned) {
+                long mask = ((1 << 32) - 1) << 32;
+                val1 |= (val1 >> 31) != 0 ? mask : 0;
+                val2 |= (val2 >> 31) != 0 ? mask : 0;
+            }
+        }
+        byte[] bval1 = long2byteArray(val1, isUnsigned);
+        byte[] bval2 = long2byteArray(val2, isUnsigned);
+
+        /*int length = isUnsigned ? 9 : 8;
+        System.err.printf("bval1: ");
+        for (int i = 0; i < length; ++i)
+            System.err.printf("%02x", bval1[i]);
+        System.err.println();
+        System.err.printf("bval2: ");
+        for (int i = 0; i < length; ++i)
+            System.err.printf("%02x", bval2[i]);
+        System.err.println();*/
+
+        BigInteger mult1 = new BigInteger(bval1);
+        BigInteger mult2 = new BigInteger(bval2);
+        BigInteger multp = mult1.multiply(mult2);
+        byte[] mult = multp.toByteArray();
+        byte[] pro = new byte[16];
+        System.arraycopy(mult, 0, pro, 16-mult.length, mult.length);
+
+        if (!isUnsigned && (mult[0] & 0x80) != 0) {
+            for (int i = 0; i < 16-mult.length; ++i)
+                pro[i] = (byte)0xFF;
+        }
+        /*System.err.printf("pro : ");
+        for (int i = 0; i < 16; ++i)
+            System.err.printf("%02x", pro[i]);
+        System.err.println();*/
+
+        byte[] res = new byte[8];
+        if (isHigh)
+            System.arraycopy(pro, 0, res, 0, 8);
+        else
+            System.arraycopy(pro, 8, res, 0, 8);
+        return byteArray2Long(res, 0);
+    }
+
+    long longDiv(long val1, long val2, boolean isUnsigned, boolean isRem) {
+        byte[] bval1 = long2byteArray(val1, isUnsigned);
+        byte[] bval2 = long2byteArray(val2, isUnsigned);
+
+        int length = isUnsigned ? 9 : 8;
+        /*System.err.printf("bval1: ");
+        for (int i = 0; i < length; ++i)
+            System.err.printf("%02x", bval1[i]);
+        System.err.println();
+        System.err.printf("bval2: ");
+        for (int i = 0; i < length; ++i)
+            System.err.printf("%02x", bval2[i]);
+        System.err.println();*/
+
+        BigInteger div1 = new BigInteger(bval1);
+        BigInteger div2 = new BigInteger(bval2);
+
+        byte[] ans;
+        if (isRem)
+            ans = (div1.remainder(div2)).toByteArray();
+        else
+            ans = (div1.divide(div2)).toByteArray();
+        byte[] res = new byte[8];
+        System.arraycopy(ans, 0, res, 8-ans.length, ans.length);
+
+        // if MSB is 1, then it is a signed negative number
+        if (!isUnsigned && (ans[0] & 0x80) != 0) {
+            for (int i = 0; i < 8-ans.length; ++i)
+                res[i] = (byte)0xFF;
+        }
+        /*System.err.printf("res : ");
+        for (int i = 0; i < 8; ++i)
+            System.err.printf("%02x", res[i]);
+        System.err.println();*/
+
+        return byteArray2Long(res, 0);
+    }
+
     public void parse() {
         long val1 = findInputByName("aluA").value;
         long val2 = findInputByName("aluB").value;
-        int shamt = (int)findInputByName("aluShamt").value;
         int operator = (int)findInputByName("aluOp").value;
         int length = (int)findInputByName("aluLength").value;
+        boolean isHigh = findInputByName("aluIsHigh").value == 1;
         boolean isUnsigned = findInputByName("aluIsUnsigned").value == 1;
 
         // NORMAL OPERATIONS
-        long res;
+        long res = 0;
         switch (operator){
-        case ALU_ADD: res = val1 + val2;
-                break;
-        case ALU_SUB: res = val1 - val2; // ???
-                break;
-        //case 2: res = val1 * val2;  // deal with multiple&divide independently
-        //        break;
-        //case 3: res = val1 / val2;
-        //        break;
-        //case 4: res = val1 % val2;
-        //        break;
-        case 5: res = val1 & val2;
-                break;
-        case 6: res = val1 | val2;
-                break;
-        case 7: res = val1 ^ val2;
-                break;
-        case 20: res = val1 << shamt;
-                break;
-        case 21: res = val1 >> shamt;
-                break;
-        case 22: res = val1 >>> shamt;
-                break;
-        }
-        if (length == 4) {
-            //if (isUnsigned)
+        case ALU_ADD:
+            res = longAdd(val1, val2, length);
+            break;
+        case ALU_SUB:
+            res = longSub(val1, val2, isUnsigned, length);
+            break;
+        case ALU_MUL:
+        case ALU_MUL_U:
+            res = longMult(val1, val2, isUnsigned, isHigh, length);
+            break;
+        case ALU_DIV:
+        case ALU_DIV_U:
+            res = longDiv(val1, val2, isUnsigned, false);
+        case ALU_REM:
+        case ALU_REM_U:
+            res = longDiv(val1, val2, isUnsigned, true);
+
+        case ALU_AND:
+            res = val1 & val2;
+            break;
+        case ALU_OR:
+            res = val1 | val2;
+            break;
+        case ALU_XOR:
+            res = val1 ^ val2;
+            break;
+        case ALU_SLL:
+            res = val1 << val2;
+            break;
+        case ALU_SRL:
+            res = val1 >> val2;
+            break;
+        case ALU_SRA:
+            res = val1 >>> val2;
+            break;
         }
 
-        // MULTIPLE
-        if (operator == 3) {
-            if (length == 4) {
-                val1 &= 0xFFFFFFFF;
-                val2 &= 0xFFFFFFFF;
-                res = val1 * val2;
-            }
-            else if (length == 8) {
-                long val1l = val1 &= 0xFFFFFFFF;
-                long val1h = val1 >>> 32;
-                long val2l = val2 &= 0xFFFFFFFF;
-                long val2h = val2 >>> 32;
-            }
-        }
+        // output
+        findOutputByName("valE").value = res;
+        findOutputByName("equal").value = (equal ? 1 : 0);
+        findOutputByName("less").value = (less ? 1 : 0);
+        findOutputByName("greater").value = (greater ? 1 : 0);
     }
 
     public void reset()
@@ -902,16 +1084,18 @@ class IntegerALU extends CombineLogic
     public void initSignals()
     {
         input = new Signal[6];
-        input[0] = new Signal("memAddr", 0);
-        input[1] = new Signal("memData", 0);
-        input[2] = new Signal("memWrite", 0);
-        input[3] = new Signal("memRead", 0);
-        input[4] = new Signal("memLength", 0);
-        input[5] = new Signal("memIsUnsigned", 0);
+        input[0] = new Signal("aluA", 0);
+        input[1] = new Signal("aluB", 0);
+        input[2] = new Signal("aluOp", 0);
+        input[3] = new Signal("aluLength", 0);
+        input[4] = new Signal("aluIsHigh", 0);
+        input[5] = new Signal("aluIsUnsigned", 0);
 
-        output = new Signal[2];
-        output[0] = new Signal("valM", 0);
-        output[1] = new Signal("invalidAddress", 0);
+        output = new Signal[4];
+        output[0] = new Signal("valE", 0);
+        output[1] = new Signal("equal", 0);
+        output[2] = new Signal("less", 0);
+        output[3] = new Signal("greater", 0);
     }
 }
 
@@ -921,8 +1105,367 @@ class FloatALU extends CombineLogic
         super();
     }
 
-    public void parse() {
+    long f2i(int f) {
+        int expo = (f & 0x7F800000) >> 23;
+        int frac = (f & 0x007FFFFF) + 0x00800000;
+        int minus = f & 0x80000000;
 
+        if (expo > 0x9D) {
+            if (minus == 0x80000000)
+                return 0x80000000;
+            else
+                return 0x7FFFFFFF;
+        }
+        else if (expo < 0x7F) {
+            return 0;
+        }
+        else {
+            frac = (frac << 8) >> (0x9E - expo);
+            if (minus == 0x80000000)
+                return (long)-frac;
+            else
+                return (long)frac;
+        }
+    }
+    long f2l(int f) {
+        int expo = (f & 0x7F800000) >> 23;
+        long frac = (long)((f & 0x007FFFFF) + 0x00800000);
+        int minus = f & 0x80000000;
+
+        if (expo > 0xBD) {
+            if (minus == 0x80000000)
+                return 0x8000000000000000L;
+            else
+                return 0x7FFFFFFFFFFFFFFFL;
+        }
+        else if (expo < 0x7F) {
+            return 0;
+        }
+        else {
+            frac = (frac << 40) >> (0xBE - expo);
+            if (minus == 0x80000000)
+                return -frac;
+            else
+                return frac;
+        }
+    }
+    long f2iu(int f) {
+        int expo = (f & 0x7F800000) >> 23;
+        int frac = (f & 0x007FFFFF) + 0x00800000;
+        int minus = f  & 0x80000000;
+
+        if (expo > 0x9E) {
+            if (minus == 0x80000000)
+                return 0;
+            else
+                return 0xFFFFFFFF;
+        }
+        else if (expo < 0x7F || minus == 0x80000000) {
+            return 0;
+        }
+        frac = (frac << 8) >> (0x9F - expo);
+        return (long)(frac & 0x0FFFFFFFF);
+    }
+    long f2lu(int f) {
+        int expo = (f & 0x7F800000) >> 23;
+        int frac = (f & 0x007FFFFF) + 0x00800000;
+        int minus = f  & 0x80000000;
+
+        if (expo > 0xBE) {
+            if (minus == 0x80000000)
+                return 0;
+            else
+                return 0xFFFFFFFFFFFFFFFFL;
+        }
+        else if (expo < 0x7F || minus == 0x80000000) {
+            return 0;
+        }
+        frac = (frac << 40) >> (0xBF - expo);
+        return frac;
+    }
+
+    int lu2f(long x) {
+        long sgn = 0;
+        int expo = 0;
+        int shift = 0;
+        int rshift = 0;
+        long frac = 0;
+
+        long ux = x;
+        if (ux != 0) {
+            // shift frac to MSB
+            shift = 64;
+            long tmp = ux;
+            while (tmp != 0) {
+                tmp >>>= 1;
+                --shift;
+            }
+            ux <<= shift;
+            
+            // judge carry or not
+            int tricky = 0;
+            int carry = (int)((ux >>> 39) & 1);
+            tmp = ux << 25;
+            if (tmp != 0)
+                tricky = 1;
+            frac = ux >>> 40;
+
+            expo = 190 - shift;     // 190=127(bias)+63
+
+            // take the carry
+            if ((carry == 1 && tricky == 1) ||
+               (carry == 1 && tricky == 0 && (frac & 1) == 1))
+                frac += 1;
+            if ((frac >>> 24) == 1) {
+                frac >>>= 1;
+                expo += 1;
+            }
+            frac &= 0x7FFFFF;
+
+            return (int)sgn + (expo << 23) + (int)frac;
+        }
+        return 0;
+    }
+    int iu2f(long x) {
+        return lu2f(x & 0xFFFFFFFF);
+    }
+    int l2f(long x) {
+        if (x == 0)
+            return 0;
+
+        long ux = x;
+        long sgn = ux & 0x8000000000000000L;
+        //System.err.printf("sgn = %016x\n", sgn);
+
+        if (sgn != 0)
+            ux = -x;
+        //System.err.printf("ux = %016x\n", ux);
+
+        // TMIN
+        if (ux == 0x8000000000000000L)
+            return 0xDF000000;
+        else {
+            int res = lu2f(ux);
+            return (int)(sgn >>> 32) | lu2f(ux);
+        }
+    }
+    int i2f(long x) {
+        x &= 0xFFFFFFFF;
+        // sign extend
+        if ((x >>> 31) == 1)
+            x |= 0xFFFFFFFF00000000L;
+        return l2f(x);
+    }
+
+    int isNAN(int x) {
+        int expx = (x >> 23) & 0xFF;
+        int frac = x & 0x7FFFFF;
+        return (expx == 0xFF && frac > 0) ? 1 : 0;
+    }
+
+    /* @return: 0b(xyz), x-less, y-equal, z-greater */
+    int fcmp(int x, int y) {
+        if (isNAN(x) == 1 || isNAN(y) == 1)
+            return 0b1000;
+
+        int sgnx = x >>> 31;
+        int sgny = y >>> 31;
+        if (sgnx == 1 && sgny == 0)
+            return 0b100;
+        else if (sgnx == 0 && sgny == 1)
+            return 0b001;
+
+        int ret = 0;
+        int expx = (x >> 23) & 0xFF;
+        int expy = (y >> 23) & 0xFF;
+        if (expx < expy)
+            return 0b100;
+        else if (expx > expy)
+            return 0b001;
+
+        int fracx = x & 0x7FFFFF;
+        int fracy = y & 0x7FFFFF;
+        if (fracx < fracy)
+            return 0b100;
+        else if (fracx > fracy)
+            return 0b001;
+        else
+            return 0b010;
+    }
+
+    long fclass(int f) {
+        int sgn = f >>> 31;
+        int expo = (f >>> 23) & 0xFF;
+        int frac = f & 0x7FFFFF;
+
+        if (expo == 0xFF) {
+            if (frac == 0) {
+                if (sgn == 0)
+                    return (1 << 7);   // +inf
+                else
+                    return 1;          // -inf
+            }
+            else if (frac >= 0x400000)
+                return (1 << 9);       // quiet NaN
+            else
+                return (1 << 8);       // signaling NaN
+        }
+        else if (expo == 0) {
+            if (sgn == 0)
+                return (1 << 5);    // pos.subnormal
+            else
+                return (1 << 2);    // neg.subnormal
+        }
+        else if (f == 0x0)
+            return (1 << 4);        // +0
+        else if (f == 0x80000000)
+            return (1 << 3);        // -0
+        else if (sgn == 0)
+            return (1 << 6);        // pos.normal
+        else
+            return (1 << 1);        // neg.normal
+    }
+
+    int realF2I (float f) {
+        return ((ByteBuffer)(ByteBuffer.allocate(4).putFloat(f).position(0))).getInt();
+    }
+    float realI2F (int f) {
+        return ((ByteBuffer)(ByteBuffer.allocate(4).putInt(f).position(0))).getFloat();
+    }
+
+    public void parse() {
+        int val1 = (int)findInputByName("fval1").value;
+        int val2 = (int)findInputByName("fval2").value;
+        int val3 = (int)findInputByName("fval3").value;
+        int opcode = (int)findInputByName("opcode").value;
+        int funct5 = (int)findInputByName("funct5").value;
+        int fmt = (int)findInputByName("fmt").value;
+        int rm = (int)findInputByName("rm").value;
+        int src2 = (int)findInputByName("src2").value;
+        long ival1 = findInputByName("val1").value;
+
+        if (fmt != 0b00) {
+            findOutputByName("invalidIns").value = 1;
+            return;
+        }
+
+        float fval1 = realI2F(val1);
+        float fval2 = realI2F(val2);
+        float fval3 = realI2F(val3);
+        int res = 0;
+        long ires = 0;
+
+        int cmp = 0;
+
+        // for R4 type
+        if (opcode == 0b1000011)
+            res = realF2I(fval1 * fval2 + fval3);   //FMADD
+        else if (opcode == 0b1000111)
+            res = realF2I(fval1 * fval2 - fval3);   //FMSUB
+        else if (opcode == 0b1001011)
+            res = realF2I(-(fval1 * fval2 + fval3));   //FNMADD
+        else if (opcode == 0b1001111)
+            res = realF2I(-(fval1 * fval2 - fval3));   //FNMSUB
+        else {
+        switch (funct5){
+        case 0b00000:
+            res = realF2I(fval1 + fval2);
+            break;
+        case 0b00001:
+            res = realF2I(fval1 - fval2);
+            break;
+        case 0b00010:
+            res = realF2I(fval1 * fval2);
+            break;
+        case 0b00011:
+            res = realF2I(fval1 / fval2);
+            break;
+        case 0b01011:
+            if (src2 == 0b00000)
+                res = realF2I((float)(Math.sqrt((double)fval1)));
+            else
+                findOutputByName("invalidIns").value = 1;
+            break;
+        case 0b00100:
+            if (rm == 0b000)
+                res = (val1 & 0x7FFFFFFF) | (val2 & 0x80000000);   //FSGN
+            else if (rm == 001)
+                res = (val1 & 0x7FFFFFFF) | (~val2 & 0x80000000);  //FSGNJN
+            else if (rm == 001)
+                res = val1 ^ (val2 & 0x80000000);                  //FSGNJX
+            else
+                findOutputByName("invalidIns").value = 1;
+            break;
+        case 0b00101:
+            cmp = (int)(fcmp(val1, val2));
+            if (cmp == 0b1000)
+                findOutputByName("meetNAN").value = 1;
+            else if (rm == 0b000)
+                res = (cmp == 0b100) ? val1 : val2;    //FMIN
+            else
+                res = (cmp == 0b001) ? val1 : val2;    //FMAX
+            break;
+        //FCMP
+        case 0b10100:
+            cmp = (int)(fcmp(val1, val2));
+            if (cmp == 0b1000)
+                findOutputByName("meetNAN").value = 1;
+            else if (rm == 0b000)                //FLE.S
+                ires = ((cmp & 0b110) != 0) ? 1 : 0;
+            else if (rm == 0b001)           //FLT.S
+                ires = ((cmp & 0b100) != 0) ? 1 : 0;
+            else if (rm == 0b010)           //FEQ.S
+                ires = ((cmp & 0b010) != 0) ? 1 : 0;
+            else
+                findOutputByName("invalidIns").value = 1;
+            break;
+        //FCVT
+        case 0b11000:
+            if (src2 == 0b00000)        //FCVT.W.S
+                res = i2f(ival1);
+            else if (src2 == 0b00001)   //FCVT.WU.S
+                res = iu2f(ival1);
+            else if (src2 == 0b00010)   //FCVT.L.S
+                res = l2f(ival1);
+            else if (src2 == 0b00011)   //FCVT.LU.S
+                res = lu2f(ival1);
+            else
+                findOutputByName("invalidIns").value = 1;
+            break;
+        case 0b11010:
+            if(src2 == 0b00000)         //FCVT.S.W
+                ires = f2i(val1);
+            else if (src2 == 0b00001)   //FCVT.S.WU
+                ires = f2iu(val1);
+            else if (src2 == 0b00010)   //FCVT.S.L
+                ires = f2l(val1);
+            else if (src2 == 0b00011)   //FCVT.S.LU
+                ires = f2lu(val1);
+            else
+                findOutputByName("invalidIns").value = 1;
+            break;
+        case 0b11100:
+            if (src2 == 0b00000 && rm == 0b000)         //FMV.X.S
+                res = (int)(val1 & 0xFFFFFFFFL);
+            else if (src2 == 0b00000 && rm == 0b001)    //FCLASS.S
+                ires = fclass(val1);
+            else
+                findOutputByName("invalidIns").value = 1;
+            break;
+        case 0b11110:
+            if (src2 == 0b00000 && rm == 0b000) {       //FMV.S.X
+                ires = ival1 & 0x0FFFFFFFFL;
+                if ((ires >>> 31) == 1)
+                    ires |= 0xFFFFFFFF00000000L;
+            }
+            else
+                findOutputByName("invalidIns").value = 1;
+            break;
+        }//END OF switch
+        }//END OF else
+
+        findOutputByName("fvalE").value = res;
+        findOutputByName("valE").value = ires;
     }
 
     public void reset()
@@ -939,17 +1482,22 @@ class FloatALU extends CombineLogic
 
     public void initSignals()
     {
-        input = new Signal[6];
-        input[0] = new Signal("memAddr", 0);
-        input[1] = new Signal("memData", 0);
-        input[2] = new Signal("memWrite", 0);
-        input[3] = new Signal("memRead", 0);
-        input[4] = new Signal("memLength", 0);
-        input[5] = new Signal("memIsUnsigned", 0);
+        input = new Signal[8];
+        input[0] = new Signal("fval1", 0);
+        input[1] = new Signal("fval2", 0);
+        input[2] = new Signal("fval3", 0);
+        input[3] = new Signal("opcode", 0);
+        input[4] = new Signal("funct3", 0);
+        input[5] = new Signal("fmt", 0);
+        input[6] = new Signal("rm", 0);
+        input[7] = new Signal("src2", 0);
+        input[8] = new Signal("val1", 0);
 
-        output = new Signal[2];
-        output[0] = new Signal("valM", 0);
-        output[1] = new Signal("invalidAddress", 0);
+        output = new Signal[4];
+        output[0] = new Signal("fvalE", 0);
+        output[1] = new Signal("valE", 0);
+        output[2] = new Signal("invalidIns", 0);
+        output[3] = new Signal("meetNAN", 0);
     }
 }
 
@@ -960,7 +1508,14 @@ class PCUpdate extends CombineLogic
     }
 
     public void parse() {
+        // 未考虑 JAL(R)
+        long pc = findInputByName("pc").value;
+        long cnd = findInputByName("cnd").value;    //???
+        long imm = findInputByName("imm").value;
 
+        long newPC = (cnd == 1) ? (pc+imm) : (pc+4);
+
+        findOutputByName("newPC").value = newPC;
     }
 
     public void reset()
@@ -977,28 +1532,43 @@ class PCUpdate extends CombineLogic
 
     public void initSignals()
     {
-        input = new Signal[6];
-        input[0] = new Signal("memAddr", 0);
-        input[1] = new Signal("memData", 0);
-        input[2] = new Signal("memWrite", 0);
-        input[3] = new Signal("memRead", 0);
-        input[4] = new Signal("memLength", 0);
-        input[5] = new Signal("memIsUnsigned", 0);
+        input = new Signal[3];
+        input[0] = new Signal("pc", 0);
+        input[1] = new Signal("cnd", 0);
+        input[2] = new Signal("imm", 0);
 
-        output = new Signal[2];
-        output[0] = new Signal("valM", 0);
-        output[1] = new Signal("invalidAddress", 0);
+        output = new Signal[1];
+        output[0] = new Signal("newPC", 0);
     }
 }
 
 class MachineState extends CombineLogic
 {
-    public MachineState(RISCVMachine machine) {
+    RISCVMachine machine;
+    public MachineState(RISCVMachine _machine) {
+        super();
 
+        machine = _machine;
     }
 
     public void parse() {
+        long iiDecoder = findInputByName("iiDecoder").value;
+        long iiFALU = findInputByName("iiFALU").value;
+        long iaMMU = findInputByName("iaMMU").value;
+        long meetNAN = findInputByName("meetNAN").value;
+        long halt = findInputByName("halt").value;
 
+        MachineStat[] MACHINE_STAT = RISCVMachine.MACHINE_STAT;
+        if (iiDecoder == 1 || iiFALU == 1)
+            machine.machineStateRegister = MACHINE_STAT[1].stat;
+        else if (iaMMU == 1)
+            machine.machineStateRegister = MACHINE_STAT[2].stat;
+        else if (meetNAN == 1)
+            machine.machineStateRegister = MACHINE_STAT[3].stat;
+        else if (halt == 1)
+            machine.machineStateRegister = MACHINE_STAT[4].stat;
+        else
+            machine.machineStateRegister = MACHINE_STAT[0].stat;
     }
 
     public void reset()

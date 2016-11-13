@@ -23,3 +23,4 @@ To initialize your workspace after your first `git clone` operation, use __init.
 ## 测试样例
 
 `test/hello.o`是一个可加载并运行的程序。
+内存地址65536是text段的起始地址，可以通过查看此地址的内容检视程序。
