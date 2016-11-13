@@ -7,3 +7,7 @@
 *.rar
 *.zip
 *.jar
+parse
+parse.exe
+syscallManager
+syscallManager.exe

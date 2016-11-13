@@ -322,17 +322,7 @@ public class ELFReader
 	{
 	    try
 	    {
-	        String osName = System.getProperties().getProperty("os.name");
-	        String script = null;
-	        if (osName.indexOf("Linux") != -1)
-	        {
-	            script = "./parse ";
-	        }
-	        else
-	        {
-	            script = "parse ";
-	        }
-
+	        String script = "bin/parse ";
 	        script += fileName;
 
 	        Process ps = Runtime.getRuntime().exec(script);
@@ -682,5 +672,3 @@ class Elf64_Sym
 		return str.toString();
 	}
 }
-
-

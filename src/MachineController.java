@@ -94,16 +94,18 @@ class DefMachineController extends MachineController
             "DefMachineController.syscallCount"))).intValue();
         syscalls = new Syscall[syscallCount];
         
-        String syscallName;
+        String syscallName = null;
         try
         {
             for (int i = 0; i < syscallCount; ++i)
             {
-                syscallName = "SYS" + (String)(Util.configManager.getConfig(
+                syscallName = (String)(Util.configManager.getConfig(
                     "DefMachineController.syscallName" + i));
-                syscalls[i] = (Syscall)Class.forName(syscallName).newInstance();
+                syscalls[i] = 
+                    (Syscall)Class.forName("SYS" + syscallName).newInstance();
                 syscalls[i].num = ((Integer)(Util.configManager.getConfig(
                     "DefMachineController.syscallNum" + i))).intValue();
+                syscalls[i].name = syscallName;
             }
         }
         catch (Exception e)
@@ -116,7 +118,7 @@ class DefMachineController extends MachineController
 
     public Syscall findSyscall(long num)
     {
-        for (int i = 0; i < syscallls.length; ++i)
+        for (int i = 0; i < syscalls.length; ++i)
         {
             if (syscalls[i].num == num)
             {

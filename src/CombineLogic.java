@@ -87,7 +87,7 @@ class MemoryManageUnit extends CombineLogic
         this.memory = machine.memory;
     }
 
-    private boolean isEffectiveAddress(MemorySegment segment, long address)
+    static boolean isEffectiveAddress(MemorySegment segment, long address)
     {
         return 
             (address >= segment.startAddress) && 

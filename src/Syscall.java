@@ -1,5 +1,8 @@
 package com.github.ShiftAC.RISCVSimulator;
 
+import java.util.*;
+import java.io.*;
+
 public abstract class Syscall
 {
     long num;
@@ -23,10 +26,10 @@ class NativeSyscall extends Syscall
         try
         {
             // need modify
-            String nativeProgram = "./syscallManager";
+            String nativeProgram = "bin/syscallManager";
             Process ps = Runtime.getRuntime().exec(nativeProgram);
-            stdout = new DataInputStream(ps.getInputStream()));
-            stderr = new DataInputStream(ps.getErrorStream()));
+            stdout = new DataInputStream(ps.getInputStream());
+            stderr = new DataInputStream(ps.getErrorStream());
             stdin = ps.getOutputStream();
         }
         catch (Exception e)
@@ -39,11 +42,23 @@ class NativeSyscall extends Syscall
     public void call(RISCVMachine machine)
     {
         byte[][] messages = getMessages(machine);
-        for (byte[] message : messages)
+        if (messages == null)
         {
-            stdin.write(message);
+            return;
         }
-        stdin.flush();
+        try
+        {
+            for (byte[] message : messages)
+            {
+                stdin.write(message);
+            }
+            stdin.flush();
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            Util.reportErrorAndExit("致命错误：无法与系统调用管理器交互");
+        }
 
         setReturnValue(machine);
     }
@@ -62,19 +77,80 @@ class NativeSyscall extends Syscall
     }
     protected void setReturnValue(RISCVMachine machine)
     {
-        generalRegister[10] = stdout.readLong();
+        try
+        {
+            machine.generalRegister[10] = stdout.readLong();
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            Util.reportErrorAndExit("致命错误：无法取得系统调用返回值");
+        }
     }
 }
 
 abstract class StreamParameteredNativeSyscall extends NativeSyscall
 {
+    static byte[] loadBytes(
+        RISCVMachine machine, long startAddress, long length)
+    {
+        long endAddress = startAddress + length - 1;
+        for (MemorySegment segment : machine.memory)
+        {
+            if (MemoryManageUnit.isEffectiveAddress(segment, startAddress))
+            {
+                if (MemoryManageUnit.isEffectiveAddress(segment, endAddress))
+                {
+                    byte[] res = new byte[(int)length];
+                    int startIndex = (int)(startAddress - segment.startAddress);
+                    for (int i = 0; i < length; ++i)
+                    {
+                        res[i] = segment.memory[i + startIndex];
+                    }
+                    return res;
+                }
+            }
+        }
+        return null;
+    }
+
+    static byte[] loadString(RISCVMachine machine, long startAddress)
+    {
+        for (MemorySegment segment : machine.memory)
+        {
+            if (MemoryManageUnit.isEffectiveAddress(segment, startAddress))
+            {
+                int startIndex = (int)(startAddress - segment.startAddress);
+                int len = 0;
+                int maxlen = (int)(segment.endAddress - startAddress);
+                for (; len < maxlen; ++len)
+                {
+                    if (segment.memory[len + startIndex] == 0)
+                    {
+                        break;
+                    }
+                }
+                byte[] string = new byte[len];
+                for (int i = 0; i < len; ++i)
+                {
+                    string[i] = segment.memory[i + startIndex];
+                }
+                return string;
+            }
+        }
+        return null;
+    }
+
     @Override
     protected byte[][] getMessages(RISCVMachine machine)
     {
-        byte[] message = (super.getMessages(machine))[0];
-
         byte[] stream = getParamStream(machine);
-        
+        if (stream == null)
+        {
+            return null;
+        }
+
+        byte[] message = (super.getMessages(machine))[0];
         byte[] prefix = (new String(" " + stream.length)).getBytes();
 
         byte[][] messages = new byte[3][];
@@ -89,11 +165,58 @@ abstract class StreamParameteredNativeSyscall extends NativeSyscall
     abstract protected byte[] getParamStream(RISCVMachine machine);
 }
 
+abstract class StreamReturnedNativeSyscall extends NativeSyscall
+{
+    static boolean saveBytes(
+        RISCVMachine machine, long startAddress, byte[] bytes)
+    {
+        long endAddress = startAddress + bytes.length - 1;
+        for (MemorySegment segment : machine.memory)
+        {
+            if (MemoryManageUnit.isEffectiveAddress(segment, startAddress))
+            {
+                if (MemoryManageUnit.isEffectiveAddress(segment, endAddress))
+                {
+                    int startIndex = (int)(startAddress - segment.startAddress);
+                    for (int i = 0; i < bytes.length; ++i)
+                    {
+                        segment.memory[i + startIndex] = bytes[i];
+                    }
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    protected byte[] readStream(DataInputStream is)
+    {
+        try
+        {
+            int len = is.readInt();
+            byte[] arr = new byte[len];
+            is.readFully(arr);
+            return arr;
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            Util.reportErrorAndExit("致命错误：无法取得系统调用返回值");
+        }
+        return null;
+    }
+    protected byte[] readStreamFromStdout()
+    {
+        return readStream(stdout);
+    }
+}
+
 class SYSopen extends StreamParameteredNativeSyscall
 {
     protected byte[] getParamStream(RISCVMachine machine)
     {
-        
+        long address = machine.generalRegister[10];
+        return loadString(machine, address);
     }
 }
 
@@ -102,12 +225,18 @@ class SYSlseek extends NativeSyscall
     // standard NativeSyscall
 }
 
-class SYSread extends NativeSyscall
+class SYSread extends StreamReturnedNativeSyscall
 {
     protected void setReturnValue(RISCVMachine machine)
     {
-        super.setReturnValue();
-        //....
+        super.setReturnValue(machine);
+        byte[] readValue = readStreamFromStdout();
+        long address = machine.generalRegister[11];
+        boolean result = saveBytes(machine, address, readValue);
+        if (result == false)
+        {
+            machine.machineStateRegister = RISCVMachine.MACHINE_STAT[2].stat;
+        }
     }
 }
 
@@ -115,13 +244,11 @@ class SYSwrite extends StreamParameteredNativeSyscall
 {
     protected byte[] getParamStream(RISCVMachine machine)
     {
-        
+        long address = machine.generalRegister[11];
+        long length = machine.generalRegister[12];
+        byte[] stream = loadBytes(machine, address, length);
+        return stream;
     }
-}
-
-class SYSfstat extends NativeSyscall
-{
-    // standard NativeSyscall
 }
 
 class SYSclose extends NativeSyscall
@@ -139,24 +266,16 @@ class SYSsbrk extends NativeSyscall
     // standard NativeSyscall
 }
 
-class SYSgettimeofday extends NativeSyscall
+class SYStimes extends NativeSyscall
 {
     // standard NativeSyscall
-}
-
-class SYStimes extends Syscall
-{
-    public void call(RISCVMachine machine)
-    {
-        //....
-    }
 }
 
 class SYSexit extends Syscall
 {
     public void call(RISCVMachine machine)
     {
-        machine.machineStateRegister = MACHINE_STAT[3].stat;
+        machine.machineStateRegister = RISCVMachine.MACHINE_STAT[3].stat;
     }
 }
 
