@@ -198,7 +198,7 @@ public abstract class CombineLogic
 
 ### 综述
 
-程序主要架构如下图所示。
+程序主要架构如下图所示。灰色表示此部件靠近用户层，绿色表示此部件在中层，蓝色表示此部件在底层。
 
 ![程序架构简图](READMERef/ProgramAbstract.png)
 
@@ -348,20 +348,16 @@ private MachineManager()
     {
         for (; true; Util.sleepIgnoreInterrupt(20))
         {
-            //System.out.println("!!!");
             if (simulatorWorking)
             {
                 continue;
             }
             
-            //System.out.println("!!!!!");
-
             String message = (String)messageQueue.remove();
             managerWorking = message != null;
             boolean needNotify = false;
             if (managerWorking)
             {
-                //System.out.println("?????");
                 if (message.length() == 0)
                 {
                     managerWorking = false;
