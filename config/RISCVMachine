@@ -78,4 +78,4 @@ S floatRegisterName28=ft8
 S floatRegisterName29=ft9
 S floatRegisterName30=ft10
 S floatRegisterName31=ft11
-S machineControllerName=DefMachineController
+S machineControllerName=com.github.ShiftAC.RISCVSimulator.DefMachineController

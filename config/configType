@@ -1,0 +1,5 @@
+4
+com.github.ShiftAC.RISCVSimulator.IntegerConfig
+com.github.ShiftAC.RISCVSimulator.BooleanConfig
+com.github.ShiftAC.RISCVSimulator.SyscallConfig
+com.github.ShiftAC.RISCVSimulator.StringConfig

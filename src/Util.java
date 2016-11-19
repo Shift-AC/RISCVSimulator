@@ -59,16 +59,6 @@ class Util
 
 
     static String version = "1.0.0001a";
-    static String[] configFileNames = 
-    {
-        "RISCVMachine",
-        "MachineStateSnapshot",
-        "MemoryViewFrame",
-        "MachineInitInfo",
-        "ProgramView",
-        "CodeLinePane",
-        "DefMachineController"
-    };
     static ConfigManager configManager;
     static SYSclosemanager closemanager = new SYSclosemanager();
     static void reportException(String description, Exception e)
@@ -112,7 +102,7 @@ class Util
     {
         try
         {
-            configManager = new ConfigManager(configFileNames);
+            configManager = new ConfigManager();
         }
         catch (FileNotFoundException fe)
         {

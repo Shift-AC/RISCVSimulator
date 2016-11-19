@@ -52,13 +52,13 @@ class NativeSyscall extends Syscall
         }
         try
         {
-            System.out.println("calling");
+            //System.out.println("calling");
             for (byte[] message : messages)
             {
-                System.out.println(new String(message));
+                //System.out.println(new String(message));
                 stdin.write(message);
             }
-            System.out.println("call");
+            //System.out.println("call");
             stdin.flush();
         }
         catch (Exception e)
@@ -258,11 +258,11 @@ abstract class StreamReturnedNativeSyscall extends NativeSyscall
 
             while (is.available() == 0);
 
-            System.out.println("st " + len + " " + is.available());
+            //System.out.println("st " + len + " " + is.available());
 
             byte[] arr = new byte[len];
             is.read(arr, 0, len);
-            System.out.println("retstream " + new String(arr));
+            //System.out.println("retstream " + new String(arr));
             return arr;
         }
         catch (Exception e)
@@ -375,13 +375,13 @@ abstract class PseudoSyscall extends NativeSyscall
         }
         try
         {
-            System.out.println("calling");
+            //System.out.println("calling");
             for (byte[] message : messages)
             {
-                System.out.println("`" + new String(message) + '`');
+                //System.out.println("`" + new String(message) + '`');
                 stdin.write(message);
             }
-            System.out.println("call");
+            //System.out.println("call");
             stdin.flush();
         }
         catch (Exception e)
@@ -405,13 +405,13 @@ abstract class StreamParameteredPseudoSyscall
         }
         try
         {
-            System.out.println("calling");
+            //System.out.println("calling");
             for (byte[] message : messages)
             {
-                System.out.println("`" + new String(message) + '`');
+                //System.out.println("`" + new String(message) + '`');
                 stdin.write(message);
             }
-            System.out.println("call");
+            //System.out.println("call");
             stdin.flush();
         }
         catch (Exception e)
@@ -462,7 +462,7 @@ class SyscallConfig extends ConfigType<Syscall>
     @Override
     public char valueType()
     {
-        return 'C';
+        return 's';
     }
     @Override
     public Syscall parse(String line)
@@ -475,11 +475,15 @@ class SyscallConfig extends ConfigType<Syscall>
         Syscall res;
         try
         {
+            String frag = line.substring(separate + 1);
+            int classSep = frag.indexOf(' ');
             res = (Syscall)Class.forName(
-                line.substring(separate + 1)).newInstance();
+                frag.substring(classSep + 1)).newInstance();
+            res.name = frag.substring(0, classSep);
         }
         catch (Exception e)
         {
+            e.printStackTrace();
             return null;
         }
         res.num = Long.parseLong(line.substring(0, separate));

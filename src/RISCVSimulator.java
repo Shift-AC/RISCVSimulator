@@ -251,6 +251,13 @@ class RISCVSimulatorFrame extends SFrame
                     programView.moveStartIndex(delta);
                     programView.refresh();
                 }
+                if (key == KeyEvent.VK_DOWN || key == KeyEvent.VK_UP)
+                {
+                    int delta = key == KeyEvent.VK_DOWN ? 1 : -1;
+
+                    programView.moveStartIndex(delta);
+                    programView.refresh();
+                }
             }
         });
     }
@@ -359,7 +366,7 @@ class RISCVSimulatorFrame extends SFrame
         consoleFrame.reset();
 
         // debug
-        testSyscall();
+        //testSyscall();
     }
 
     private void testSyscall()
@@ -376,7 +383,7 @@ class RISCVSimulatorFrame extends SFrame
             public void call(RISCVMachine machine)
             {
                 long[] reg = machine.generalRegister;
-                reg[11] = 1;
+                reg[11] = 0;
                 reg[12] = 0x1FF;
                 super.call(machine);
             }
@@ -386,7 +393,7 @@ class RISCVSimulatorFrame extends SFrame
                 byte[][] res = new byte[2][];
                 long[] reg = machine.generalRegister;
                 res[0] = (num + " " + reg[10] + " " + reg[11] + " " + reg[12] + " " + reg[13] + "\n").getBytes();
-                res[1] = "5 a.txt".getBytes();
+                res[1] = "10 test/a.txt".getBytes();
                 return res;
             }
         };

@@ -9,5 +9,4 @@
 *.jar
 *~
 *.vscode/*
-parse
 *.o

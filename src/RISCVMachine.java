@@ -166,7 +166,6 @@ public class RISCVMachine
 
         String controlName = (String)(Util.configManager.getConfig(
                 "RISCVMachine.machineControllerName"));
-        controlName = Util.packageName + "." + controlName;
         try
         {
             controller = 

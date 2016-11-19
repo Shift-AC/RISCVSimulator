@@ -47,11 +47,11 @@ int main(int argc, char **argv)
 
     listenfd = Open_listenfd(port);
     clientlen = sizeof(clientaddr);
-	connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen);
+    connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen);
 
     while (1) 
     {
-	    doit(connfd);
+	doit(connfd);
     }
 }
 

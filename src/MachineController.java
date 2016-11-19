@@ -24,6 +24,8 @@ abstract class MachineController extends CombineLogic
     protected void initSignals() {}
 
     abstract protected void initSyscall();
+    abstract protected void initControlSignals();
+    abstract protected void initCombineLogic();
 
     // bind a CombineLogic's input to other CombineLogic's output
     // CAUTION: if an input signal is binded to an output signal, it will 
@@ -73,8 +75,7 @@ abstract class MachineController extends CombineLogic
 
     public void doSyscall()
     {
-        // don't know which register to copy yet
-        long num = 0;
+        long num = this.machine.generalRegister[10];
 
         findSyscall(num).call(this.machine);
     }
@@ -336,14 +337,8 @@ class DefMachineController extends MachineController
         {
             for (int i = 0; i < syscallCount; ++i)
             {
-                syscallName = (String)(Util.configManager.getConfig(
-                    "DefMachineController.syscallName" + i));
-                syscallClass = Util.packageName + ".SYS" + syscallName;
-                syscalls[i] = 
-                    (Syscall)Class.forName(syscallClass).newInstance();
-                syscalls[i].num = ((Integer)(Util.configManager.getConfig(
-                    "DefMachineController.syscallNum" + i))).intValue();
-                syscalls[i].name = syscallName;
+                syscalls[i] = (Syscall)(Util.configManager.getConfig(
+                    "DefMachineController.syscall" + i));
             }
         }
         catch (Exception e)

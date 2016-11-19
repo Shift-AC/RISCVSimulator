@@ -61,28 +61,28 @@ public class ELFReader
     	// read headers
     	int ret = readELFSection(is);
     	if (ret == -1) {
-			System.err.printf("Error in readELFSection!\n");
+			//System.err.printf("Error in readELFSection!\n");
     		return null;
     	}
     	
     	// parse memory segments
     	initMemorySegment();
     	/*for (int i = 0; i < machine.memory.length; ++i) {
-    		System.err.printf("%s", machine.memory[i].toString());
+    		//System.err.printf("%s", machine.memory[i].toString());
     	}*/
 
     	// parse symbols
     	ret = initSymbol();
     	if (ret == -1) {
-    		System.err.printf("Error in symbol parsing!\n");
+    		//System.err.printf("Error in symbol parsing!\n");
     		return null;
     	}
     	/*for (int i = 0; i < symbol.length; ++i)
-    		System.err.printf("%s", symbol[i].toString());*/
+    		//System.err.printf("%s", symbol[i].toString());*/
 
     	ret = initInstruction(fileName);
     	if (ret == -1) {
-    		System.err.printf("Invalid instruction(s) detected!\n");
+    		//System.err.printf("Invalid instruction(s) detected!\n");
     	}
 
     	initPC();
@@ -110,7 +110,7 @@ public class ELFReader
 		int count;
 		try {
 			if ((count = is.read(elfAllBytes, 64, size)) == -1) {
-				System.err.printf("ELF file error!\n");
+				//System.err.printf("ELF file error!\n");
 				return -1;
 			}
 		} catch (IOException e) {
@@ -455,7 +455,7 @@ class Elf64_Ehdr
 				e_shentsize = Util.byteArray2Short(buffer, 58);
 				e_shnum = Util.byteArray2Short(buffer, 60);
 				e_shstrndx = Util.byteArray2Short(buffer, 62);
-				System.err.printf(this.toString());
+				//System.err.printf(this.toString());
 			}
 			else {
 				return -1;
@@ -511,7 +511,7 @@ class Elf64_Phdr
 		p_filesz = Util.byteArray2Long(buffer, 32);
 		p_memsz = Util.byteArray2Int(buffer, 40);
 		p_align = Util.byteArray2Short(buffer, 48);
-		System.err.printf(this.toString());
+		//System.err.printf(this.toString());
 		return 0;
 	}
 
@@ -561,7 +561,7 @@ class Elf64_Shdr
 		sh_addralign = Util.byteArray2Long(buffer, 48);
 		sh_entsize = Util.byteArray2Long(buffer, 56);
 	
-		System.err.printf(this.toString());
+		//System.err.printf(this.toString());
 		return 0;
 	}
 
@@ -627,7 +627,7 @@ class Elf64_Sym
 		st_value = Util.byteArray2Long(buffer, 8);
 		st_size = Util.byteArray2Long(buffer, 16);
 	
-		//System.err.printf(this.toString());
+		////System.err.printf(this.toString());
 		return 0;
 	}
 
