@@ -10,4 +10,4 @@
 *~
 *.vscode/*
 parse
-syscallServer
+*.o
