@@ -1,4 +1,5 @@
 1.0
-I savedSegmentCount=2
+I savedSegmentCount=3
 S savedSegmentName0=dataSegment
 S savedSegmentName1=bssSegment
+S savedSegmentName2=sdataSegment

@@ -139,7 +139,7 @@ public abstract class RISCVInstruction
 
     protected static int signExtend(int immediate, int originalLength)
     {
-        int shift = 33 - originalLength;
+        int shift = 32 - originalLength;
         return (immediate << shift) >> shift;
     }
 

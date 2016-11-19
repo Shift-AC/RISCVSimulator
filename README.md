@@ -341,21 +341,267 @@ public abstract class CombineLogic
 
 #### MachineManager概述
 
-为了实现上层UI需要的功能，
+```java
+private MachineManager() 
+{
+    super(()->
+    {
+        for (; true; Util.sleepIgnoreInterrupt(20))
+        {
+            //System.out.println("!!!");
+            if (simulatorWorking)
+            {
+                continue;
+            }
+            
+            //System.out.println("!!!!!");
+
+            String message = (String)messageQueue.remove();
+            managerWorking = message != null;
+            boolean needNotify = false;
+            if (managerWorking)
+            {
+                //System.out.println("?????");
+                if (message.length() == 0)
+                {
+                    managerWorking = false;
+                    continue;
+                }
+                char c = message.charAt(0);
+                switch (c)
+                {
+                case 'S':
+                    step();
+                    break;
+                case 'R':
+                    needNotify = reset();
+                    break;
+                case 'T':
+                    terminate();
+                    break;
+                case 'P':
+                    pause();
+                    break;
+                case 'C':
+                    needNotify = startRun();
+                    break;
+                case 'B':
+                    breakpoint(Integer.parseInt(message.substring(1)));
+                    break;
+                default:
+                    System.err.println(
+                        "MessageManager: Unexpected message " + c);
+                }
+                managerWorking = false;
+
+                if (needNotify)
+                {
+                    frm.notifyProgram();
+                }
+            }
+        }
+    });
+}
+```
+
+Manager主逻辑（消息循环）如上所示。为了实现上层UI需要的调试功能，Manager使用了一种基于管程的并发安全消息队列`MessageQueue`。UI若想进行某项操作，只需向消息队列中写入指令即可，Manager会自动处理对应的几种操作。如从头开始运行程序（代码如下）：Manager的实际操作即为不断地执行单步操作，并检查消息队列中是否有停止或暂停指令，若有则结束操作。并且，为防止程序自动退出后UI部分无法响应，`startRun()`方法会返回一个`boolean`值，以代表此次运行结束是否是用户要求结束操作。
+
+```java
+static SYSsetstarttime setstarttime = new SYSsetstarttime();
+static private boolean startRun()
+{
+    step();
+
+    setstarttime.call(null);
+
+    String message;
+    while (machine.isRunnable())
+    {
+        message = (String)messageQueue.peek();
+        if (message != null)
+        {
+            if (message.length() != 0)
+            {
+                char c = message.charAt(0);
+                if (c == 'T' || c == 'P')
+                {
+                    return false;
+                }
+            }
+            messageQueue.remove();
+        }
+        if (machine.instructions[machine.getPCIndex()].isBreakpoint)
+        {
+            return true;
+        }
+        machine.stepOperate();
+    }
+    return true;
+}
+```
+
+另一方面，为了实现修改机器的寄存器，内存等功能，Manager使用了`MachineInfo`及其子类。顾名思义，`MachineInfo`代表机器状态。实际上，机器状态由其存储器中的内容唯一决定。所以为了记录、修改、复现机器的状态，我们需要记录存储器的内容。`MachineInfo`实际上完成的就是此类功能。其子类`MachineStateSnapshot`便最终被用于实现UI中的几种编辑/查看器；`MachineInitInfo`则被用于实现重置机器状态（主要是重置内存中的data段数据）。
 
 #### MachineController概述
 
+要了解`MachineController`，我们首先从`CombineLogic`入手。
+
 ##### CombineLogic概述
+
+```java
+class Signal
+{
+    String name;
+    Signal bind = null;
+    long value;
+
+    public Signal(String name, long value)
+    {
+        this.name = name;
+        this.value = value;
+    }
+}
+
+public abstract class CombineLogic
+{
+    Signal[] input = null;
+    Signal[] output = null;
+
+    abstract public void parse();
+
+    abstract protected void initSignals();
+
+    abstract public void reset();
+
+    public void setInput(String name, long value)
+    {
+        Signal signal = findInputByName(name);
+
+        if (signal != null)
+        {
+            signal.value = value;
+        }
+    }
+
+    public Long getOutput(String name)
+    {
+        parse();
+        
+        Signal signal = findOutputByName(name);
+
+        if (signal != null)
+        {
+            return new Long(signal.value);
+        }
+        return null;
+    }
+
+    // ...
+}
+```
+
+`CombineLogic`是组合逻辑部件的抽象。它包含的主要元素是一组输入信号与一组输出信号，以及一个输入处理函数`parse()`。每个信号（`Signal`对象）是名称-值对。值是一个64位整数（既然64位机不应用到更宽的数据线），名称可以被用来寻找信号。若要使用一个对应的`CombineLogic`模块，只需设置它所有的输入信号，执行`parse()`方法并在之后提取其输出即可。
+
+值得强调的是，`CombineLogic`仅仅是组合逻辑部件的抽象，它不关心部件之间的布线，仅仅假定自己已经获得了运算所需的所有信号，并实际进行运算。
+
+##### 基于CombineLogic与bind()的Controller
+
+在一组实现了对应功能的`CombineLogic`（如ALU，寄存器文件，存储控制器）的基础上，我们可以进一步实现`Controller`。
+
+同样地，我们向现实的处理器设计寻求启发。正如之前强调的，`CombineLogic`不关心模块间布线，只关心模块内的运算，于是我们需要找到一种方式来模拟布线（即bind()，代码如下）。
+
+```java
+// bind a CombineLogic's input to other CombineLogic's output
+// CAUTION: if an input signal is binded to an output signal, it will 
+// ignore it's original value and therefore setInput won't be able to
+// change it's value anymore. to set it's value, unbind() is needed.
+static protected boolean bind(CombineLogic srcLogic, String srcName, 
+    CombineLogic destLogic, String destName)
+{
+    Signal dest = destLogic.findInputByName(destName);
+    Signal src = srcLogic.findOutputByName(srcName);
+
+    if (dest == null || src == null)
+    {
+        return false;
+    }
+
+    dest.bind = src;
+
+    return true;
+}
+
+static protected boolean unbind(CombineLogic logic, String name)
+{
+    Signal signal = logic.findInputByName(name);
+    
+    if (signal == null)
+    {
+        return false;
+    }
+
+    signal.bind = null;
+
+    return true;
+}
+
+protected Signal findSignalByName(String name, Signal[] arr)
+{
+    for (Signal signal : arr)
+    {
+        if (signal.name.equals(name))
+        {
+            if (signal.bind != null)
+            {
+                return signal.bind;
+            }
+            return signal;
+        }
+    }
+    return null;
+} 
+```
+
+我们结合这三个函数来分析模拟布线的具体实现。首先我们发现，需要在模块之间连线的情况只有一种：将某个模块的输出接到某个模块的输入，且一个输入只能与一个输出相连（否则需要多选器）。而output和input都是`Signal`类型的对象，它们共有的属性是value（都是64位整数）。这样看来，布线的实现方式便变得显然了。我们修改搜索`Signal`的策略（`findSignalByName`方法），令`Signal`如果被bind，则它的值变成它bind的`Signal`的值。而bind的开销也是相当小的（只需要修改一个bind域）。于是，我们以“只需要将一个输出接到一个输入”这样的强命题作为前提，实现了布线的模拟。
+
+在拥有`CombineLogic`和`bind()`之后，我们便基本可以理解`Controller`的设计思路了：分析数据通路，实现各组件，bind。我们也看到，`Controller`其实继承了`CombineLogic`类，它的`parse()`函数其实就是执行一个周期的指令。
 
 ##### 系统调用概述
 
-#### UI元素概述
+在`Controller`的基础上，我们接着考虑系统调用的具体实现。
+
+```java
+public abstract class Syscall
+{
+    long num;
+    String name;
+
+    public Syscall() {}
+    abstract public void call(RISCVMachine machine);
+}
+```
+
+`Syscall`是一种类似于`CombineLogic`的数据结构。它封装一个系统调用的实现，具有系统调用号与名称。类似于`CombineLogic`的`parse()`，`Syscall`的核心部分就是它的`call()`方法。
+
+在本程序中，考虑到java的文件操作接口与标准linux系统调用极其不相像，且难以使用，我们最终选择了使用本地C程序（`syscallServer`）来实现系统调用，这样，我们可以直接利用本地的系统调用来实现，大大降低了开发难度。
+
+具体的做法是利用`NativeSyscall`类与本地的C程序交互。
+
+`NativeSyscall`类初始化时，会启动`syscallServer`程序，并提供输入输出流用以与之交互。同时，它也提供了一些交互的基本函数。
+
+java程序与本地程序交互的方法至少有两种，一种是利用`Runtime.exec()`方法运行本地程序并利用`getInputStream()`和`getOutputStream()`方法来获取输入输出流。另外一种是利用套接字进行网络传输。在实测中我们发现第一种方法不可行，因为程序并不能收到本地程序的`stdout`输出。于是我们最终采用了第二种策略，即利用套接字进行通信。我们让本地C程序作为服务器监听2333端口，java程序与之连接，并向它发送系统调用相关信息。具体的发送方式是：首先发送五个长整数，第一个是系统调用号，之后四个是存放参数的寄存器。之后，为了处理外部程序不能直接访问虚拟机存储的问题，我们规定了字节流传输的格式，并对于每个需要发送字节串的系统调用，在发送完参数之后发送一个字节流。对于每一个需要将字节串写到内存的系统调用，在接收完返回值之后接收一个字节流，并将之存储到内存中。
+
+除此之外，对于`stdin`，`stdout`，`stderr`这三个与控制台关联的流，我们进行特殊处理。对于输出到控制台的情况，我们不与`syscallServer`交互，而仅仅是输出到控制台中的文本框。对于从控制台输入的情况，我们需要做一些特殊的处理。
+
+实际上，不仅是控制台输入，对于其他情况，我们也会经常需要“特殊处理”。如对于`times`系统调用，我们并没有办法获得程序的总运行时长。主程序退出时，我们也会需要将`syscallServer`关闭。
+
+为了应对这样的情况，我们定义了伪系统调用（`PseudoSyscall`类），它并不是RISCV程序真正会调用的系统调用，而是我们为了通知`syscallServer`而定义的一些伪操作。如对于从控制台输入，我们向server发送接收到的字符串并让server存储到缓冲区，当我们从文件描述符0读取字串时，server会返回缓冲区中的内容。
+
+#### 系统架构概述
+
+？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？
 
 ## 测试
-
-### 综合测试
-
-`test/hello.o`是一个可加载并运行的程序。
 
 ### 内存编辑功能测试
 
@@ -363,6 +609,6 @@ public abstract class CombineLogic
 
 内存地址0x0FFFFFFFFF800000是栈顶的地址，可以通过将此地址查看并修改栈中的内容。
 
-## 完成度
+### 综合测试
 
-UI交互与系统调用已经调试通过，虚拟机本身的指令执行功能仍然存在bug，本目录下的代码执行时并不会实际运行指令，而是简单地将PC自增。
+`test/hello.o`是一个可加载并运行的程序。
