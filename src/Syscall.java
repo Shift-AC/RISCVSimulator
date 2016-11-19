@@ -119,6 +119,12 @@ class NativeSyscall extends Syscall
         while (is.available() == 0);
 
         long ret = 0;
+        is.read(buf, 0, 1);
+        boolean isMinus = buf[0] == '-';
+        if (!isMinus)
+        {
+            ret = buf[0] - '0';
+        }
         while (is.available() != 0)
         {
             is.read(buf, 0, 1);
@@ -132,7 +138,7 @@ class NativeSyscall extends Syscall
             }
             ret = ret * 10 + buf[0] - '0';
         }
-        return ret;
+        return isMinus ? -ret: ret;
     }
 }
 
@@ -217,6 +223,10 @@ abstract class StreamReturnedNativeSyscall extends NativeSyscall
     static boolean saveBytes(
         RISCVMachine machine, long startAddress, byte[] bytes)
     {
+        if (bytes == null)
+        {
+            return true;
+        }
         long endAddress = startAddress + bytes.length - 1;
         for (MemorySegment segment : machine.memory)
         {
@@ -241,6 +251,11 @@ abstract class StreamReturnedNativeSyscall extends NativeSyscall
         try
         {
             int len = (int)getLongFromNetworkStream(is);
+            if (len == 0)
+            {
+                return null;
+            }
+
             while (is.available() == 0);
 
             System.out.println("st " + len + " " + is.available());

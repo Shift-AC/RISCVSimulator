@@ -395,7 +395,7 @@ class RISCVSimulatorFrame extends SFrame
             @Override
             public void call(RISCVMachine machine)
             {
-                machine.generalRegister[10] = 0;
+                //machine.generalRegister[10] = 0;
                 machine.generalRegister[12] = 11;
                 super.call(machine);
             }
@@ -416,7 +416,8 @@ class RISCVSimulatorFrame extends SFrame
             {
                 byte[][] res = new byte[2][];
                 long[] reg = machine.generalRegister;
-                res[0] = (num + " " + reg[10] + " " + reg[11] + " " + reg[12] + " " + reg[13] + "\n").getBytes();
+                res[0] = (num + " " + reg[10] + " " + reg[11] + " " + 
+                    reg[12] + " " + reg[13] + "\n").getBytes();
                 res[1] = "11 hello world".getBytes();
                 return res;
             }

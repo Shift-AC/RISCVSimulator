@@ -82,15 +82,16 @@ void parse_syscall(int fd, rio_t *prio)
         write_return(fd, prio, close(a0));
         break;
     case 1024:
-        read_byte_stream(fd, prio, s);
-	write_return(fd, prio, open(s, O_RDONLY, 0x1FF));        
-//write_return(fd, prio, open(s, a1, a2));
+        s[read_byte_stream(fd, prio, s)] = 0;
+	//int x = open(s, O_RDONLY, 0777);
+	//write_return(fd, prio, x);        
+        write_return(fd, prio, open(s, a1, a2));
         break;
     case 63:
         if (a0 == 0)
         {
             int len;
-            len = min(a2, (long long)(tail - head)); 				
+            len = min(a2, (long long)(tail - head)); 
             for (int i = 0; i < len; ++i)
                 s[i] = head[i];
             head += len;
@@ -139,13 +140,20 @@ ssize_t read_byte_stream(int fd, rio_t *prio, char *arr)
 
 void write_byte_stream(int fd, rio_t *prio, char *arr, int len)
 {
+    if (len <= 0)
+    {
+        len = 0;
+    }
 #ifdef USE_STDOUT
     printf("%d %s", len, arr);
 #else
     char prefix[16];
     sprintf(prefix, "%d ", len);
     Rio_writen(fd, prefix, strlen(prefix));
-    Rio_writen(fd, arr, len);
+    if (len > 0)
+    {
+        Rio_writen(fd, arr, len);
+    }
 #endif
 }
 
