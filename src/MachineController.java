@@ -326,6 +326,7 @@ class DefMachineController extends MachineController
     @Override
     protected void initSyscall()
     {
+        System.out.println("?????????????");
         int syscallCount = ((Integer)(Util.configManager.getConfig(
             "DefMachineController.syscallCount"))).intValue();
         syscalls = new Syscall[syscallCount];

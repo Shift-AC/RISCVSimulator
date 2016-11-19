@@ -17,8 +17,8 @@ class NativeSyscall extends Syscall
 {
     static final int hostPort = 2333;
 
-    static DataInputStream stdout;
-    static DataInputStream stderr;
+    static InputStream stdout;
+    //static InputStream stderr;
     static OutputStream stdin;
     static
     {
@@ -28,15 +28,13 @@ class NativeSyscall extends Syscall
             Process ps = Runtime.getRuntime().exec(nativeProgram);
             // standard library doesn't work well here.
             //stdin = ps.getOutputStream();
-            // but we will use the program's output stream since it's faster 
-            // than socket.
-            stdout = new DataInputStream(ps.getInputStream());
-            stderr = new DataInputStream(ps.getErrorStream());
+            //stdout = new InputStream(ps.getInputStream());
+            //stderr = new InputStream(ps.getErrorStream());
 
             Socket socket = new Socket(
                 InetAddress.getLocalHost(), hostPort);
             stdin = socket.getOutputStream();
-            
+            stdout = socket.getInputStream();
         }
         catch (Exception e)
         {
@@ -54,10 +52,13 @@ class NativeSyscall extends Syscall
         }
         try
         {
+            System.out.println("calling");
             for (byte[] message : messages)
             {
+                System.out.println(new String(message));
                 stdin.write(message);
             }
+            System.out.println("call");
             stdin.flush();
         }
         catch (Exception e)
@@ -73,7 +74,7 @@ class NativeSyscall extends Syscall
         StringBuilder sb = new StringBuilder();
         if (machine == null)
         {
-            sb.append(num + " 0 0 0 0");
+            sb.append(num + " 0 0 0 0\n");
         }
         else
         {
@@ -83,7 +84,6 @@ class NativeSyscall extends Syscall
             sb.append(generalRegister[11] + " ");
             sb.append(generalRegister[12] + " ");
             sb.append(generalRegister[13] + "\n");
-            System.out.println(sb);
         }
         byte[][] messages = new byte[1][];
         messages[0] = sb.toString().getBytes();
@@ -97,15 +97,42 @@ class NativeSyscall extends Syscall
         }
         try
         {
-            //while (stdout.available() == 0);
-            //System.out.println("??");
-            machine.generalRegister[10] = stdout.readLong();
+            machine.generalRegister[10] = getLongFromStdout();
+            System.out.println("ret "  + machine.generalRegister[10]);
         }
         catch (Exception e)
         {
             e.printStackTrace();
             Util.reportErrorAndExit("致命错误：无法取得系统调用返回值");
         }
+    }
+    protected long getLongFromStdout()
+        throws IOException
+    {
+        return getLongFromNetworkStream(stdout);
+    }
+
+    byte[] buf = new byte[1];
+    protected long getLongFromNetworkStream(InputStream is)
+        throws IOException
+    {
+        while (is.available() == 0);
+
+        long ret = 0;
+        while (is.available() != 0)
+        {
+            is.read(buf, 0, 1);
+            if (buf[0] == '\n')
+            {
+                continue;
+            }
+            if (buf[0] == ' ')
+            {
+                break;
+            }
+            ret = ret * 10 + buf[0] - '0';
+        }
+        return ret;
     }
 }
 
@@ -171,7 +198,7 @@ abstract class StreamParameteredNativeSyscall extends NativeSyscall
         }
 
         byte[] message = (super.getMessages(machine))[0];
-        byte[] prefix = (new String(" " + stream.length + " ")).getBytes();
+        byte[] prefix = (new String(stream.length + " ")).getBytes();
 
         byte[][] messages = new byte[3][];
 
@@ -209,13 +236,18 @@ abstract class StreamReturnedNativeSyscall extends NativeSyscall
         return false;
     }
 
-    protected byte[] readStream(DataInputStream is)
+    protected byte[] readStream(InputStream is)
     {
         try
         {
-            int len = is.readInt();
+            int len = (int)getLongFromNetworkStream(is);
+            while (is.available() == 0);
+
+            System.out.println("st " + len + " " + is.available());
+
             byte[] arr = new byte[len];
-            is.readFully(arr);
+            is.read(arr, 0, len);
+            System.out.println("retstream " + new String(arr));
             return arr;
         }
         catch (Exception e)
@@ -316,7 +348,67 @@ class SYSexit extends Syscall
 }
 
 // pseudo-syscalls, used to control syscallManager only.
-class SYSsetstarttime extends NativeSyscall
+abstract class PseudoSyscall extends NativeSyscall
+{
+    @Override
+    public void call(RISCVMachine machine)
+    {
+        byte[][] messages = getMessages(machine);
+        if (messages == null)
+        {
+            return;
+        }
+        try
+        {
+            System.out.println("calling");
+            for (byte[] message : messages)
+            {
+                System.out.println("`" + new String(message) + '`');
+                stdin.write(message);
+            }
+            System.out.println("call");
+            stdin.flush();
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            Util.reportErrorAndExit("致命错误：无法与系统调用管理器交互");
+        }
+    }
+}
+
+abstract class StreamParameteredPseudoSyscall 
+    extends StreamParameteredNativeSyscall
+{
+    @Override
+    public void call(RISCVMachine machine)
+    {
+        byte[][] messages = getMessages(machine);
+        if (messages == null)
+        {
+            return;
+        }
+        try
+        {
+            System.out.println("calling");
+            for (byte[] message : messages)
+            {
+                System.out.println("`" + new String(message) + '`');
+                stdin.write(message);
+            }
+            System.out.println("call");
+            stdin.flush();
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            Util.reportErrorAndExit("致命错误：无法与系统调用管理器交互");
+        }
+    }
+}
+
+
+class SYSsetstarttime extends PseudoSyscall
 {
     public SYSsetstarttime()
     {
@@ -325,7 +417,7 @@ class SYSsetstarttime extends NativeSyscall
     }
 }
 
-class SYSstdin extends StreamParameteredNativeSyscall
+class SYSstdin extends StreamParameteredPseudoSyscall
 {
     byte[] bytesToWrite = null;
     public SYSstdin()
@@ -338,9 +430,10 @@ class SYSstdin extends StreamParameteredNativeSyscall
     {
         return bytesToWrite;
     }
+
 }
 
-class SYSclosemanager extends NativeSyscall
+class SYSclosemanager extends PseudoSyscall
 {
     public SYSclosemanager()
     {

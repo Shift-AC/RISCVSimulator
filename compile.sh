@@ -6,5 +6,5 @@ make
 mv ./syscallServer ../../bin/
 cd ..
 chmod 777 ../bin/parse
-chmod 777 ../bin/syscallManager
+chmod 777 ../bin/syscallServer
 cd ..

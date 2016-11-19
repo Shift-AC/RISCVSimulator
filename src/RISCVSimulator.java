@@ -226,7 +226,7 @@ class RISCVSimulatorFrame extends SFrame
         initializeMenu();
         setDebugOptionState(STATE_NOTREADY);
 
-        consoleFrame = new ConsoleFrame();
+        consoleFrame = MachineManager.console;
 
         //pneFrame.
         setLayout(new GridLayout(1, 1));
@@ -338,15 +338,76 @@ class RISCVSimulatorFrame extends SFrame
         consoleFrame.reset();
 
         // debug
-        //testSyscall();
+        testSyscall();
     }
 
     private void testSyscall()
     {
         MachineController controller = MachineManager.machine.controller;
 
-        Syscall syscall = controller.findSyscall(214);
-        syscall.call(MachineManager.machine);
+        Syscall syssbrk = new SYSsbrk();
+        syssbrk.num = 214;
+        syssbrk.call(MachineManager.machine);
+
+        Syscall sysopen = new SYSopen()
+        {
+            @Override
+            public void call(RISCVMachine machine)
+            {
+                long[] reg = machine.generalRegister;
+                reg[11] = 1;
+                reg[12] = 0x1FF;
+                super.call(machine);
+            }
+            @Override
+            protected byte[][] getMessages(RISCVMachine machine)
+            {
+                byte[][] res = new byte[2][];
+                long[] reg = machine.generalRegister;
+                res[0] = (num + " " + reg[10] + " " + reg[11] + " " + reg[12] + " " + reg[13] + "\n").getBytes();
+                res[1] = "5 a.txt".getBytes();
+                return res;
+            }
+        };
+        sysopen.num = 1024;
+
+        Syscall sysread = new SYSread()
+        {
+            @Override
+            public void call(RISCVMachine machine)
+            {
+                machine.generalRegister[10] = 0;
+                machine.generalRegister[12] = 11;
+                super.call(machine);
+            }
+        };
+        sysread.num = 63;
+
+        Syscall syswrite = new SYSwrite()
+        {
+            @Override
+            public void call(RISCVMachine machine)
+            {
+                machine.generalRegister[10] = 1;
+                machine.generalRegister[12] = 11;
+                MachineManager.console.writeToScreen("hello world".getBytes());
+            }
+            @Override
+            protected byte[][] getMessages(RISCVMachine machine)
+            {
+                byte[][] res = new byte[2][];
+                long[] reg = machine.generalRegister;
+                res[0] = (num + " " + reg[10] + " " + reg[11] + " " + reg[12] + " " + reg[13] + "\n").getBytes();
+                res[1] = "11 hello world".getBytes();
+                return res;
+            }
+        };
+        syswrite.num = 64;
+
+        sysopen.call(MachineManager.machine);
+        sysread.call(MachineManager.machine);
+        syswrite.call(MachineManager.machine);
+        System.out.println("????????");
     }
 
     public void notifyProgram()

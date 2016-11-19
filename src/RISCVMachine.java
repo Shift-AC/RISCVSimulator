@@ -172,6 +172,7 @@ public class RISCVMachine
             controller = 
                 (MachineController)Class.forName(controlName).newInstance();
             controller.machine = this;
+            controller.initSyscall();
         }
         catch (Exception e)
         {
