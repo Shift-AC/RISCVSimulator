@@ -2,6 +2,7 @@ package com.github.ShiftAC.RISCVSimulator;
 
 import java.util.*;
 import java.io.*;
+import java.net.*;
 
 public abstract class Syscall
 {
@@ -14,6 +15,8 @@ public abstract class Syscall
 
 class NativeSyscall extends Syscall
 {
+    static final int hostPort = 2333;
+
     static DataInputStream stdout;
     static DataInputStream stderr;
     static OutputStream stdin;
@@ -21,12 +24,19 @@ class NativeSyscall extends Syscall
     {
         try
         {
-            // need modify
-            String nativeProgram = "bin/syscallManager";
+            String nativeProgram = "bin/syscallServer";
             Process ps = Runtime.getRuntime().exec(nativeProgram);
+            // standard library doesn't work well here.
+            //stdin = ps.getOutputStream();
+            // but we will use the program's output stream since it's faster 
+            // than socket.
             stdout = new DataInputStream(ps.getInputStream());
             stderr = new DataInputStream(ps.getErrorStream());
-            stdin = ps.getOutputStream();
+
+            Socket socket = new Socket(
+                InetAddress.getLocalHost(), hostPort);
+            stdin = socket.getOutputStream();
+            
         }
         catch (Exception e)
         {
@@ -72,7 +82,7 @@ class NativeSyscall extends Syscall
             sb.append(generalRegister[10] + " ");
             sb.append(generalRegister[11] + " ");
             sb.append(generalRegister[12] + " ");
-            sb.append(generalRegister[13] + "");
+            sb.append(generalRegister[13] + "\n");
             System.out.println(sb);
         }
         byte[][] messages = new byte[1][];
@@ -88,7 +98,7 @@ class NativeSyscall extends Syscall
         try
         {
             //while (stdout.available() == 0);
-            System.out.println("??");
+            //System.out.println("??");
             machine.generalRegister[10] = stdout.readLong();
         }
         catch (Exception e)
@@ -161,7 +171,7 @@ abstract class StreamParameteredNativeSyscall extends NativeSyscall
         }
 
         byte[] message = (super.getMessages(machine))[0];
-        byte[] prefix = (new String(" " + stream.length)).getBytes();
+        byte[] prefix = (new String(" " + stream.length + " ")).getBytes();
 
         byte[][] messages = new byte[3][];
 
@@ -223,6 +233,7 @@ abstract class StreamReturnedNativeSyscall extends NativeSyscall
 
 class SYSopen extends StreamParameteredNativeSyscall
 {
+    @Override
     protected byte[] getParamStream(RISCVMachine machine)
     {
         long address = machine.generalRegister[10];
@@ -304,7 +315,7 @@ class SYSexit extends Syscall
     }
 }
 
-//pseudo-syscalls
+// pseudo-syscalls, used to control syscallManager only.
 class SYSsetstarttime extends NativeSyscall
 {
     public SYSsetstarttime()

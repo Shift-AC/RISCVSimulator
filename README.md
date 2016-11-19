@@ -1,14 +1,14 @@
 # RISCVSimulator
 
-Simple pluggable RISCV simulator implements RISCV64IMF
+Simple pluggable RISCV64IMF simulator, works on Linux.
 
 ## For Contributors
 
-To initialize your workspace after your first `git clone` operation, use __init.bat__.
+To initialize your workspace after your first `git clone` operation, use __init.sh__.
 
 ## 安装程序
 
-运行`compile.sh`以完成编译安装，在完成编译之后需要将riscv-toolchain中附带的`objdump`程序复制到`bin/`文件夹。
+运行init.sh初始化工作区，之后运行`compile.sh`以完成编译安装。在完成编译之后需要将riscv-toolchain中附带的`objdump`程序复制到`tools/`文件夹。
 
 ## 使用程序
 
@@ -20,7 +20,27 @@ To initialize your workspace after your first `git clone` operation, use __init.
 
 利用”查看“菜单栏中的各选项可以查看并修改机器信息（内存，寄存器），可以查看符号表。在”内存“页面可以输入起始地址以查看或修改从此地址开始的256字节内存内容，在“符号表”页面可以输入符号名称前缀以搜索符号。
 
+利用“控制台”项可与程序进行交互。
+
 ## 测试样例
 
 `test/hello.o`是一个可加载并运行的程序。
 内存地址65536是text段的起始地址，可以通过查看此地址的内容检视程序。
+
+## 程序功能目标
+
+1. 实现RISCV-IMF指令集
+
+2. 实现系统调用
+
+3. 调试功能（断点，单步调试，运行程序，控制台，查看寄存器、内存、符号表，修改寄存器、内存）
+
+4. 指令添加：只需要修改对应的config文件，添加指令的数据通路
+
+5. 可插接的模拟器实现：用户实现一组CombineLogic类，实现MachineController类即可改变模拟器的具体实现。
+
+6. 可插接的系统调用实现：用户实现一组Syscall类，并在config文件中注册系统调用即可使用自己的系统调用实现。
+
+## 完成度
+
+UI交互与系统调用已经调试通过，虚拟机本身的指令执行功能仍然存在bug，本目录下的代码执行时并不会实际运行指令，而是简单地将PC自增。

@@ -2,13 +2,12 @@
 /ref/*
 /tmp/*
 /test/*
-/.vscode/*
+/tools/*
 *.7z
 *.rar
 *.zip
 *.jar
-*.bat
+*~
+*.vscode/*
 parse
-parse.exe
-syscallManager
-syscallManager.exe
+syscallServer

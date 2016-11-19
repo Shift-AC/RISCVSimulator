@@ -2,6 +2,7 @@ mkdir bin
 mkdir ref
 mkdir test
 mkdir tmp
+mkdir tools
 cat "git will ignore files in 'test/', 'tmp/', 'bin/', and 'ref/'."
 cat "Feel free to use these folders."
 cat "Recommended usage of the folders:"
