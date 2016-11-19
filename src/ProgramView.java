@@ -404,24 +404,32 @@ public class ProgramView extends JPanel
                 int delta = ((Integer)(Util.configManager.getConfig(
                     "ProgramView.scrollLines"))).intValue();
 
-                int originalStartIndex = startIndex;
-                startIndex += delta * e.getWheelRotation();
-                if (startIndex + codeLines.length >= instructions.length)
-                {
-                    startIndex = instructions.length - codeLines.length;
-                    if (startIndex < 0)
-                    {
-                        startIndex = originalStartIndex;
-                    }
-                }
-                else
-                {
-                    startIndex = startIndex < 0 ? 0 : startIndex;
-                }
+                delta *= e.getWheelRotation();
+
+                moveStartIndex(delta);
 
                 refresh();
             }
         });
+    }
+
+    public void moveStartIndex(int delta)
+    {
+
+        int originalStartIndex = startIndex;
+        startIndex += delta;
+        if (startIndex + codeLines.length >= instructions.length)
+        {
+            startIndex = instructions.length - codeLines.length;
+            if (startIndex < 0)
+            {
+                startIndex = originalStartIndex;
+            }
+        }
+        else
+        {
+            startIndex = startIndex < 0 ? 0 : startIndex;
+        }
     }
 
     public void setEditable(boolean editable)

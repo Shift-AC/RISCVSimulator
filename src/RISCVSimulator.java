@@ -232,6 +232,25 @@ class RISCVSimulatorFrame extends SFrame
         setLayout(new GridLayout(1, 1));
         programView = new ProgramView();
         ((JFrame)this).add(programView);
+
+        this.addKeyListener(new KeyAdapter()
+        {
+            @Override
+            public void keyPressed(KeyEvent e)
+            {
+                int key = e.getKeyCode();
+                if (key == KeyEvent.VK_PAGE_UP || key == KeyEvent.VK_PAGE_DOWN)
+                {
+                    int delta = 
+                        key == KeyEvent.VK_PAGE_DOWN ? 
+                        programView.codeLinesOnScreen : 
+                        -programView.codeLinesOnScreen;
+                    
+                    programView.moveStartIndex(delta);
+                    programView.refresh();
+                }
+            }
+        });
     }
 
     void checkExit()
