@@ -83,8 +83,6 @@ void parse_syscall(int fd, rio_t *prio)
         break;
     case 1024:
         s[read_byte_stream(fd, prio, s)] = 0;
-	//int x = open(s, O_RDONLY, 0777);
-	//write_return(fd, prio, x);        
         write_return(fd, prio, open(s, a1, a2));
         break;
     case 63:
@@ -132,10 +130,14 @@ ssize_t read_byte_stream(int fd, rio_t *prio, char *arr)
     char num;
     for (Rio_readnb(prio, &num, 1); num != ' '; Rio_readnb(prio, &num, 1))
     {
+        if (num == '\n')
+        {
+            continue;
+        }
         len = len * 10 + (num - '0');
     }
 
-    return Rio_readnb(prio, arr, 2);
+    return Rio_readnb(prio, arr, len);
 }
 
 void write_byte_stream(int fd, rio_t *prio, char *arr, int len)

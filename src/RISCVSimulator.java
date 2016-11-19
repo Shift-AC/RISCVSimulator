@@ -46,8 +46,10 @@ class RISCVSimulatorFrame extends SFrame
 
             if (res == JFileChooser.APPROVE_OPTION)
             {
-                String fileName = fc.getCurrentDirectory().getName() + "/" +
-                                  fc.getSelectedFile().getName();
+                //String fileName = fc.getCurrentDirectory().getName() + "/" +
+                //                  fc.getSelectedFile().getName();
+                String fileName = fc.getSelectedFile().getAbsolutePath();
+                
                 FileInputStream is;
                 try
                 {
