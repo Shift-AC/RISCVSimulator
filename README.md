@@ -686,4 +686,4 @@ java程序与本地程序交互的方法至少有两种，一种是利用`Runtim
 
 - `syscallManager`的实现用到了`csapp.c`与`csapp.h`，这是_CS:APP_书本所附的的网络材料。
 
-- `objdump`程序是(riscv-toolchain)[https://github.com/riscv/riscv-gnu-toolchain]中的模块。
+- `objdump`程序是[riscv-toolchain](https://github.com/riscv/riscv-gnu-toolchain)中的模块。
