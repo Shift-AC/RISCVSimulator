@@ -100,7 +100,53 @@ To initialize your workspace after your first `git clone` operation, use __init.
 
 在不修改代码的前提（即沿用默认的处理器体系结构）下，用户只需适当修改config，即可添加新指令（或删除旧指令）。
 
-具体方法？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？
+一方面，为标识不同指令的机器码，我们在 RISCVInstuction 抽象类中，实现了如下函数。该函数（或各个子类的包装函数 generateID(...)）为每条指令生成一个唯一标识码ID。虚拟机运行时，通过比对当前指令ID与预存在 config/RISCVInstruction 文件中的所有合法指令的ID，我们就能够确定该指令。
+
+```java
+protected long _generateID(int opcode, int funct7, int funct6,
+                           int funct5, int funct3, int funct2,
+                           int rs2)
+{
+    long id = 0;
+    id |= ((long)opcode) << 56;
+    id |= ((long)funct7) << 48;
+    id |= ((long)funct6) << 40;
+    id |= ((long)funct5) << 32;
+    id |= ((long)funct3) << 24;
+    id |= ((long)funct2) << 16;
+    id |= ((long)rs2) << 8;
+    // preserve the lowest 8 bits for future use
+    return id;
+}
+ ```
+
+另一方面，每条指令对应的数据通路都可以不同，因此增加新指令也需要给出其控制信号与多选信号。在 config/instructions 文件夹下，有若干以数字命名的文件（当前为0~92），每个文件（编号）对应一条指令。虚拟机在初始化时，会读取这些文件，将所有指令信号保存在一个 ControlSignal 数组中。运行时只需通过ID识别指令即可得到这些信号。
+
+- 增加符合现有规则的新指令
+
+机器码：
+
+    方法一：为简化用户操作，我们将上述函数的调用进一步封装在 geneID 类中，并可通过test.sh（包含一个java运行的命令）直接启动。用户需要在test.sh文件末尾提示处将新指令的一个典型机器码和名称添加到命令行参数中，运行，然后用生成的 config/RISCVInstructionNew 文件替代原有的 config/RISCVInstruction 即可。
+
+    方法二：用户也可以直接在 config/RISCVInstruction 中新增条目，格式是：L [ins.name]=[ins.ID]，其中ins.ID为一个64位十六进制数，参照上述函数的方法手动计算出结果即可。具体到每个类型的指令，可以参看 RISCV-v2.1 官方文档，或者参看 RISCVInstruction 各个类的 generateID 函数实现。
+
+    需要注意的是，目前允许的不修改代码就能新增的指令必须符合 RISCV-v2.1 官方文档的指令类型标准，其 opcode 域的取值也不能超出官方文档已有的指令 opcode 取值集合。
+
+数据信号：
+
+    用户还需要根据新指令的功能，在 config/instructions 文件夹下新增一个文件，填写各个信号的取值。具体要求请阅读该文件夹下的 "README.md" 文档。
+
+待完善————还需要修改一点代码：
+
+    本虚拟机在理想状态下，增加新指令应当不需要修改代码的任何部分。但限于时间，代码与数据的分离工作没有彻底完成。
+    遗留的部分：类 RISCVInstruction 维护着各条指令的编号(static int)与初始化操作(函数private static void initInsID())。因此，如想要新增一个POWER指令，则需要增加"static int POWER = 93"的声明，并在initInsID()函数增加一条
+        insID[ECALL] = ((Long)(Util.configManager.getConfig(
+            "RISCVInstruction.POWER"))).longValue();
+
+- 增加与现有指令有较大区别的新指令
+
+这就要求增加指令者在上述修改的基础上，再对现有代码进行修改。如需增加新的opcode，则必须将其添加到ELFReader类实现的对应类别的判别函数中；如需增加新的指令类型，则需要用户新建一个指令类型类。若指令涉及的数据通路有所改变，或者进行的运算是之前没有的，那么需要用户修改或者重制组合逻辑控制类或者组合逻辑类。总而言之，这将是修改者对本模拟器代码理解程度的一次考验。
+
 
 ### 修改系统调用集
 
@@ -595,7 +641,247 @@ java程序与本地程序交互的方法至少有两种，一种是利用`Runtim
 
 #### 系统架构概述
 
-？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？
+##### 总述
+
+在我们之前提到的高层控制模块调用 machineController 的 parse() 函数后，虚拟机即需要完成一个周期的动作（也就是执行一条指令）。我们实现的处理器架构与之前ICS、体系结构等课程提到的经典结构类似：对于每个周期，虚拟处理器的“输入”为当前程序计数器的值(pc，这里我们直接获取已备份的指令序列的编号)，在（可选地）经过“译码”(Decoder)、“通用/浮点寄存器读取”(gene/floatRegisterRead)、“整型/浮点运算单元”(Integer/FloatALU)、“存储器读/写”(memoryRead/Write)、“通用/浮点寄存器写入”(gene/floatRegisterWrite)、“PC更新”(pcUpdate，合法指令必选)以及所有指令必选的“虚拟机状态更新”(machineState)等阶段后，完成一些数据的计算、访存或者系统调用等动作，并根据指令的完成情况更新虚拟处理器的状态，以便高层控制模块判断是否能够继续执行。
+
+值得注意的是，由于RISCV ISA在实现某些伪指令(pseudo instruction)时，会使用“写入zero寄存器”的技巧来复用已有指令，因此我们在每个周期结束后需要将zero寄存器的值恢复为0（这么做的目的是避免在写入寄存器时的冗长判断）。另外，由于系统调用的实现与虚拟处理器无关，因此我们需要对其进行特判。
+
+
+```java
+@Override
+public void parse()
+{
+    // get current PC index
+    insIndex = machine.getPCIndex();
+
+    System.err.printf("executing Ins %d: %08x %s\n", insIndex,
+    machine.instructions[insIndex].code,
+    machine.instructions[insIndex].asm);
+
+    decode();
+
+    if (invalidIns == 0) {
+        // special check for syscall
+        if (insType == RISCVInstruction.ECALL) {
+            doSyscall();
+            if (!machine.isRunnable())
+                return;
+            pcUpdate();
+            machineState();
+            return;
+        }
+
+        if (controlSignals[insType].needGRRead == 1)
+            geneRegRead();
+        if (controlSignals[insType].needFRRead == 1)
+            floatRegRead();
+
+        if (controlSignals[insType].needIALU == 1)
+            intALU();
+        if (controlSignals[insType].needFALU == 1)
+            floatALU();
+
+        if ((controlSignals[insType].needMRead == 1) ||
+            (controlSignals[insType].needMWrite == 1))
+            memory();
+
+        if (controlSignals[insType].needGRWrite == 1)
+            geneRegWrite();
+        if (controlSignals[insType].needFRWrite == 1)
+            floatRegWrite();
+
+        pcUpdate();
+    }
+
+    machineState();
+
+    machine.generalRegister[0] = 0;
+}
+```
+
+##### 已实现的组合逻辑块
+
+通用的若干规则：
+    1. 若某条指令的某个逻辑块不能（必然地，也不需要）给出某个信号signal1的值，那么signal1的输出值很可能是默认的0（事实上，它的值是多少都没有任何影响）。其他组合逻辑块也遵循同样的规则。
+    2. 各个数据信号的含义在本节进行说明，各个控制信号/多选信号的含义详见 config/instruction/README.md 文档。
+    3. 信号的输入与输出均通过前述 Signal 类实现。
+
+- 译码器 Decoder
+
+    通过输入信号指令序列编号(insIndex)，得到一个指令对象(RISCVInstruction)；根据指令的类型决定其输出信号与其值。
+    可能的输出信号包括：指令机器码是否合法(invalidIns)、读取的寄存器编号(src1, src2, src3, dst)、立即数(imm)、移位数(shamt)、浮点操作的一个功能标识域(fmt)及舍入模式域(rm)。
+
+- 通用寄存器堆 GeneralRegisterFile
+
+    输入信号包括：本次访问进行什么操作(gregRead, gregWrite)、读取的寄存器编号(src1, src2 / dst)、读取的长度(regLength, 以字节为单位)、写入的数据来源(regData)、备选写入数据(ivalE, fivalE, valM, imm, cnd)。
+    输出信号包括：从寄存器读出的数据(val1, val2)。
+
+- 浮点寄存器堆 FloatRegisterFile
+
+    输入信号包括：本次访问进行什么操作(fregRead, fregWrite)、读取的寄存器编号(src1, src2, src3 / dst)、读取的长度(regLength, 以字节为单位)、写入的数据来源(regData)、备选写入数据(fvalE, fvalM)。
+    输出信号包括：从寄存器读出的数据(fval1, fval2, fval3)。
+
+- 整数运算单元 IntegerALU
+
+    输入信号包括：操作数选择(aluA, aluB)、运算类型选择(aluOp)、操作数是否应被视为无符号数(aluIsUnsigned)、是否应输出结果的高位(aluIsHigh)、条件位应如何设置(aluSetCnd)、操作数备选项(reg1, reg2, pc, imm, shamt)。
+    输出信号包括：计算结果(valE)、条件位(cnd, less, equal, greater)。
+
+- 浮点运算单元 FloatALU
+
+    输入信号包括：操作数选择(fALUA, fALUB, fALUC)、运算类型选择(aluOp, fmt, rm)、条件位应如何设置(fALUSetCnd)、操作数备选项(fval1, fval2, fval3, ival1)。
+    输出信号包括：将要存入浮点寄存器的结果(fvalE)、将要存入整数寄存器的结果(valE)、计算时是否遇到NAN(meetNAN)。
+
+- 存储管理单元 MemoryManageUnit
+
+    输入信号包括：本次访问进行什么操作(memRead, memWrite)、地址选择(memAddr)，读取的长度(memLength)、是否以无符号数形式读取数据(memIsUnsigned)、写入数据选择(memData)、写入数据备选(ival1, imm, ivalE, fvalE, ival2, fval2)。
+    输出信号包括：读取的数据(valM)、地址是否合法(invalidAddress)。
+
+- PC更新 PCUpdate
+
+    输入信号包括：是否进行条件跳转(pcCnd)、PC更新来源(pcSrc)、跳转条件(cnd)、PC新值数据来源(pc, imm, ival1)。
+    输出信号包括：新的PC值(newPC)。
+
+- 程序状态更新 MachineState
+
+    输入信号包括：是否为非法指令(iInsDecoder)、是否为非法地址(iAddrMMU)、是否遇到NAN(meetNAN，现有结构下暂时不需要处理这个异常)、是否停机(halt)。
+    输出信号：无。
+
+##### 组合逻辑块间的数据通路
+
+利用config中的控制/多选信号，以及前述的bind机制，我们可以很容易地将虚拟处理器的内部数据通路用代码表示。例如IntegerALU组合逻辑的输入：
+
+```java
+class DefMachineController extends MachineController
+{
+    void intALU() {
+        /* integer ALU */
+        // from config
+        modules[3].findInputByName("aluA").value =
+            (long)controlSignals[insType].iALUA;
+        modules[3].findInputByName("aluB").value =
+            (long)controlSignals[insType].iALUB;
+        modules[3].findInputByName("aluOp").value =
+            (long)controlSignals[insType].iALUOp;
+        modules[3].findInputByName("aluLength").value =
+            (long)controlSignals[insType].iALULength;
+        modules[3].findInputByName("aluIsHigh").value =
+            (long)controlSignals[insType].iALUIsHigh;
+        modules[3].findInputByName("aluIsUnsigned").value =
+            (long)controlSignals[insType].iALUIsUnsigned;
+        modules[3].findInputByName("aluSetCnd").value = 
+            (long)controlSignals[insType].iALUSetCnd;
+
+        // from machine state
+        modules[3].findInputByName("pc").value =
+            machine.programCounter;
+
+        // from bind
+        bind(DECODER, "shamt", I_ALU, "shamt");
+        bind(DECODER, "imm", I_ALU, "imm");
+        bind(GENE_REG, "val1", I_ALU, "reg1");
+        bind(GENE_REG, "val2", I_ALU, "reg2");
+
+        modules[3].parse();
+    }
+    ...
+}
+```
+
+而数据通路本身，则需要分析指令集中的所有指令来得出。下图是本系统的具体实现方案。与此前ICS，体系结构等课程学过的结构有所不同，本系统将多选器移入大的组合逻辑块内，同时将所有可能的备选数据导入组合逻辑内，这样做的好处是能够方便地扩展备选数据间的组合与预运算；数据多选信号与操作符多选信号统一处理，也使得代码实现变得更加优美。
+
+![数据通路](READMERef/DataPath.png)
+
+#### ELF文件解析
+
+ELF文件由一个文件头、若干程序头(program header)、若干节(section)以及一个节头表组成。它们的结构如下：
+
+```c
+typedef struct {
+        unsigned char   e_ident[EI_NIDENT]; 
+        Elf64_Half      e_type;
+        Elf64_Half      e_machine;
+        Elf64_Word      e_version;
+        Elf64_Addr      e_entry;
+        Elf64_Off       e_phoff;
+        Elf64_Off       e_shoff;
+        Elf64_Word      e_flags;
+        Elf64_Half      e_ehsize;
+        Elf64_Half      e_phentsize;
+        Elf64_Half      e_phnum;
+        Elf64_Half      e_shentsize;
+        Elf64_Half      e_shnum;
+        Elf64_Half      e_shstrndx;
+} Elf64_Ehdr;
+```
+
+```c
+typedef struct {
+        Elf64_Word      p_type;
+        Elf64_Word      p_flags;
+        Elf64_Off       p_offset;
+        Elf64_Addr      p_vaddr;
+        Elf64_Addr      p_paddr;
+        Elf64_Xword     p_filesz;
+        Elf64_Xword     p_memsz;
+        Elf64_Xword     p_align;
+} Elf64_Phdr;
+```
+
+```c
+typedef struct {
+        Elf64_Word      sh_name;
+        Elf64_Word      sh_type;
+        Elf64_Xword     sh_flags;
+        Elf64_Addr      sh_addr;
+        Elf64_Off       sh_offset;
+        Elf64_Xword     sh_size;
+        Elf64_Word      sh_link;
+        Elf64_Word      sh_info;
+        Elf64_Xword     sh_addralign;
+        Elf64_Xword     sh_entsize;
+} Elf64_Shdr;
+```
+
+（来源：http://docs.oracle.com/cd/E26926_01/html/E25910）
+
+结合ICS课程的知识，我们将ELF文件解析这个部分的作用定义为：利用这些信息来构建一个进程在虚拟机中的初始环境（具体地，是创建并初始化一个RISCVMachine对象）。这个环境包括：分段的地址空间，一个指令数组（序列），程序入口点，寄存器初值以及供用户调试用的符号表。
+
+- 解析ELF文件结构  
+    我们先读取文件头，并通过文件头获取程序头/节头的数量及文件偏移量。因为两者的大小与结构已在上述结构体定义中固定，因此不需要文件头的指定。
+
+    对于节，我们需要从节头表项中得到其字符串名称、权限、大小、文件偏移量、映射到的虚拟地址空间的位置等信息。这些信息大都显式地存在节头中，而字符串名称则储存在一个特殊的节.shstrtab中，sh_name存的是字符串首地址在该节的偏移量。
+
+    对于程序头，我们使用的riscv-toolchain生成的可执行文件中通常正好含有一个程序头，故其起始虚拟地址及占用大小可直接标识出需要从ELF文件加载的地址空间。利用这一点，我们可以容易地得到堆的起始地址。
+
+- 解析各节内容  
+
+    * 地址空间的创建与加载  
+      通过各节的虚地址起始，我们发现，.text, .rodata, .data, .init_array, .bss等节具有实际的虚拟地址，因此我们将每一个节作为一个单独的虚存块进行管理，外加堆、栈，共13个虚存块；而不被实际加载入内存的节，对本次lab没有什么帮助，因此我们简单地弃之不用。其中，栈的起始地址是人为确定的一个高地址，并且在实验中发现，我们也必须在栈底（即高地址处）留出一部分空间用于存放程序的命令行参数、环境变量等，否则可能在系统调用等处出错。这种安排方式与ICS课程中所述一致。堆的起始地址需要紧跟上述加载节的最高地址，如果ELF文件只有一个程序头，那么这一数据能够通过p_vaddr与p_memsz的简单相加得到；否则需要遍历将加载到内存的节，来获取这个地址。
+
+    * 指令机器码序列的保存  
+      因为RISCV指令具有固定的4字节长度，我们很容易将.text段切割为一个指令码序列。再通过RISCV-toolchain提供的objdump工具，我们抽取其中的汇编代码，用于用户程序调试时的代码查看。
+
+    * 符号表的解析  
+      考虑到模拟器需要提供用户调试功能，而调试时很可能需要查看一些符号的地址/值，因此，我们顺带也进行了符号表(symtab, strtab)的解析。如下图所示，一个表项大小为0x18，其中st_name同样是符号名称在.strtab中的偏移量，st_value表示符号在虚拟地址空间中的地址，st_size表示符号占用的内存大小。
+
+```c
+typedef struct {
+        Elf64_Word      st_name;
+        unsigned char   st_info;
+        unsigned char   st_other;
+        Elf64_Half      st_shndx;
+        Elf64_Addr      st_value;
+        Elf64_Xword     st_size;
+} Elf64_Sym;
+```
+
+（来源：http://docs.oracle.com/cd/E26926_01/html/E25910）
+
+另外，程序入口点在文件头中存储(e_entry)，我们需要将其作为PC的初始值； sp寄存器的初始值应当比栈的高地址低一些（实验中，我们将这一差值设为0x100）；其余寄存器均初始化为0。
+
+这样，我们就完成了ELF文件对虚拟机环境的支持。
+
 
 ## 测试
 
@@ -618,6 +904,7 @@ java程序与本地程序交互的方法至少有两种，一种是利用`Runtim
 
     ```c
     // hello.c
+    //   用系统调用实现的HelloWorld程序。
     // 输入：
     //    无
     // 输出：
@@ -638,26 +925,221 @@ java程序与本地程序交互的方法至少有两种，一种是利用`Runtim
 
     ```c
     // fsort.c
+    //   将int数组从小到大排序后输出。
     // 输入：
     //   无
     // 输出：
-    //   
+    //   原数组与排序后的数组
+    #include <stdio.h>
+    #include <unistd.h>
+
+    static char buffer[16];
+    int ind;
+
+    static void printnum(int num)
+    {
+        int flag = num < 0;
+        if (num < 0)
+        {
+            num = -num;
+        }
+
+        buffer[15] = 0;
+        ind = 14;
+        do
+        {
+            buffer[ind--] = num % 10 + 48;
+            num /= 10;
+        }
+        while (num != 0);
+
+        if (flag)
+        {
+            buffer[ind--] = '-';
+        }
+
+        write(1, buffer + ind + 1, 14 - ind);
+    }
+
+    // sorts the array [start, end), ascending
+    #define L 10
+    void uqsort(int *start, int *end)
+    {
+        int *ts = start, *te = end - 1;
+
+        while (ts < te)
+        {
+            for (; te > ts; --te)
+            {
+                if (*te < *ts)
+                {
+                    int tmp = *te;
+                    *te = *ts;
+                    *ts = tmp;
+                    break;
+                }
+            }
+
+            for (; ts < te; ++ts)
+            {
+                if (*ts > *te)
+                {
+                    int tmp = *te;
+                    *te = *ts;
+                    *ts = tmp;
+                    break;
+                }
+            }
+        }
+
+        if (ts - start > 1)
+        {
+            uqsort(start, ts);
+        }
+        if (end - te > 2)
+        {
+            uqsort(te + 1, end);
+        }
+    }
+
+    char str[] = " \n";
+    int arr[L] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 0};
+    int main()
+    {
+        int i;
+        for (i = 0; i < L; ++i)
+        {
+            arr[i] = i * i - 7 * i;
+        printnum(arr[i]);
+            write(1, str, 1);
+        }
+
+        uqsort(arr, arr + L);
+
+        write(1, str + 1, 1);
+        for (i = 0; i < L; ++i)
+        {
+        printnum(arr[i]);
+            write(1, str, 1);
+        } 
+        write(1, str + 1, 1);
+
+        return 0;
+    }
     ```
 
 - `test/fsort`是一个可加载并运行的程序。
 
     ```c
     // fsort.c
+    //   将float数组从小到大排序后输出。
     // 输入：
     //   无
     // 输出：
-    //   
+    //   原数组与排序后的数组
+    #include <stdio.h>
+    #include <unistd.h>
+
+    static char buffer[16] = "asdas";
+    int ind = 2;
+
+    static void printnum(int num)
+    {
+        int flag = num < 0;
+        if (num < 0)
+        {
+            num = -num;
+        }
+
+        buffer[15] = 0;
+        ind = 14;
+        do
+        {
+            buffer[ind--] = num % 10 + 48;
+            num /= 10;
+        }
+        while (num != 0);
+
+        if (flag)
+        {
+            buffer[ind--] = '-';
+        }
+
+        write(1, buffer + ind + 1, 14 - ind);
+    }
+
+    // sorts the array [start, end), ascending
+    #define L 10
+    void uqsort(float *start, float *end)
+    {
+        float *ts = start, *te = end - 1;
+
+        while (ts < te)
+        {
+            for (; te > ts; --te)
+            {
+                if (*te < *ts)
+                {
+                    float tmp = *te;
+                    *te = *ts;
+                    *ts = tmp;
+                    break;
+                }
+            }
+
+            for (; ts < te; ++ts)
+            {
+                if (*ts > *te)
+                {
+                    float tmp = *te;
+                    *te = *ts;
+                    *ts = tmp;
+                    break;
+                }
+            }
+        }
+
+        if (ts - start > 1)
+        {
+            uqsort(start, ts);
+        }
+        if (end - te > 2)
+        {
+            uqsort(te + 1, end);
+        }
+    }
+
+    char str[] = " \n";
+    float arr[L] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 0};
+    int main()
+    {
+        int i;
+        for (i = 0; i < L; ++i)
+        {
+            arr[i] = i * i - 7 * i;
+        printnum((int)arr[i]);
+            write(1, str, 1);
+        }
+
+        uqsort(arr, arr + L);
+
+        write(1, str + 1, 1);
+        for (i = 0; i < L; ++i)
+        {
+        printnum((int)arr[i]);
+            write(1, str, 1);
+        } 
+        write(1, str + 1, 1);
+
+        return 0;
+    }
     ```
 
 - `test/fecho`是一个可加载并运行的程序。
 
     ```c
     // fecho.c
+    //   打开输入的文件名所表示的文件，读取前13个字符并输出。
     // 输入：
     //   test/1.txt
     // 输出：
