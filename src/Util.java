@@ -58,18 +58,10 @@ class Util
     }
 
 
-    static String version = "1.0.0001a";
-    static String[] configFileNames = 
-    {
-        "RISCVMachine",
-        "MachineStateSnapshot",
-        "MemoryViewFrame",
-        "MachineInitInfo",
-        "ProgramView",
-        "CodeLinePane"
-    };
+    static String version = "1.0.0001r";
+
     static ConfigManager configManager;
-    
+    static SYSclosemanager closemanager = new SYSclosemanager();
     static void reportException(String description, Exception e)
     {
         JOptionPane.showMessageDialog(
@@ -91,12 +83,14 @@ class Util
     static void reportErrorAndExit(String message)
     {
         reportError(message);
+        closemanager.call(null);
         System.exit(0);
     }
 
     static void reportExceptionAndExit(String description, Exception e)
     {
         reportException(description, e);
+        closemanager.call(null);
         System.exit(0);
     }
 
@@ -109,7 +103,7 @@ class Util
     {
         try
         {
-            configManager = new ConfigManager(configFileNames);
+            configManager = new ConfigManager();
         }
         catch (FileNotFoundException fe)
         {
@@ -119,6 +113,15 @@ class Util
         {
             reportExceptionAndExit("读取关键文件时遇到问题，错误信息:", ie);
         }
+    }
+    
+    static void sleepIgnoreInterrupt(long time)
+    {
+        try
+        {
+            Thread.sleep(time);
+        }
+        catch (Exception e) {}
     }
 
 }

@@ -1,0 +1,11 @@
+1.0
+I syscallCount=9
+s syscall0=1024 open com.github.ShiftAC.RISCVSimulator.SYSopen
+s syscall1=62 lseek com.github.ShiftAC.RISCVSimulator.SYSlseek
+s syscall2=63 read com.github.ShiftAC.RISCVSimulator.SYSread
+s syscall3=64 write com.github.ShiftAC.RISCVSimulator.SYSwrite
+s syscall4=57 close com.github.ShiftAC.RISCVSimulator.SYSclose
+s syscall5=80 isatty com.github.ShiftAC.RISCVSimulator.SYSisatty
+s syscall6=214 sbrk com.github.ShiftAC.RISCVSimulator.SYSsbrk
+s syscall7=169 times com.github.ShiftAC.RISCVSimulator.SYStimes
+s syscall8=93 exit com.github.ShiftAC.RISCVSimulator.SYSexit

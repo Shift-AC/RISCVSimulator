@@ -1,9 +1,10 @@
 /bin/*
 /ref/*
 /tmp/*
-/test/*
-/.vscode/*
 *.7z
 *.rar
 *.zip
 *.jar
+*~
+*.vscode/*
+*.o

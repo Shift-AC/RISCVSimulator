@@ -66,7 +66,7 @@ public class ELFReader
     	}
     	
     	// parse memory segments
-    	initMemorySegment();
+    	initMemorySegment(fileName);
     	/*for (int i = 0; i < machine.memory.length; ++i) {
     		System.err.printf("%s", machine.memory[i].toString());
     	}*/
@@ -143,7 +143,7 @@ public class ELFReader
 		return 0;
 	}
 
-	public int initMemorySegment() {
+	public int initMemorySegment(String fileName) {
 		// load sections to memory
 		MemorySegment memory;
 		for (int i = 0; i < elfHeader.e_shnum; ++i) {
@@ -179,6 +179,14 @@ public class ELFReader
 		machine.memory[STACK].writable = true;
 		machine.memory[STACK].executable = false;
 		machine.memory[STACK].memory = new byte[(int)(Util.STACK_BEGIN-Util.STACK_END)];
+
+		byte[] ba = Util.long2byteArray(Util.STACK_BEGIN-0xF0);
+		System.arraycopy(ba, 0, machine.memory[STACK].memory, 
+			(int)(Util.STACK_BEGIN-Util.STACK_END-0x100), 8);
+		fileName = fileName.substring(fileName.lastIndexOf("/") + 1);
+		ba = fileName.getBytes();
+		System.arraycopy(ba, 0, machine.memory[STACK].memory,
+			(int)(Util.STACK_BEGIN-Util.STACK_END-0xF0), ba.length);
 		return 0;
 	}
 
@@ -208,7 +216,8 @@ public class ELFReader
     	for (i = 0; i < symNum; ++i) {
     		symTE[i] = new Elf64_Sym();
     		symTE[i].read(symtab, i*symSize);
-    		if (symTE[i].st_value > 0)
+
+    		if (symTE[i].st_value != 0)
     			symbolNum++;
     	}
     	symbol = new Symbol[symbolNum];
@@ -216,12 +225,13 @@ public class ELFReader
     	// set symbols
     	int ret;
     	for (i = 0, j = 0; i < symNum; ++i) {
-    		symbol[j] = new Symbol();
-    		ret = symTE[i].setSymbol(symbol[j], strtab, secHeader);
+		Symbol tmp = new Symbol();
+    		ret = symTE[i].setSymbol(tmp, strtab, secHeader);
     			// if this symbol is not in memory
     		if (ret == -1)
     			continue;
     			// if this symbol is the name of a section
+		symbol[j] = tmp;
     		if (symTE[i].st_info == 0x3)	// STT_SECTION = 0x3
     			symbol[j].name = secHeader[symTE[i].st_shndx].name;
     		++j;
@@ -236,10 +246,7 @@ public class ELFReader
 	{
 		return 
 			opcode == 0b0110011 ||
-			opcode == 0b0111011 ||
-			(opcode == 0b1010011 && (
-				funct7 == 0b0010000 ||
-				funct7 == 0b0010100));
+			opcode == 0b0111011;
 	}
 
 	static boolean isR4Instruction(int opcode)
@@ -281,7 +288,8 @@ public class ELFReader
 				funct3 == 0b111)) ||
 			(opcode == 0b0011011 && 
 				funct3 == 0b000) ||
-			opcode == 0b0000111;
+			opcode == 0b0000111 ||
+			opcode == 0b1110011;
 	}
 
 	static boolean isSInstruction(int opcode)
@@ -310,9 +318,38 @@ public class ELFReader
 			opcode == 0b1101111;
 	}
 
-	static boolean isFZInstruction(int opcode)
+	static boolean isFAInstruction(int opcode, int funct7)
 	{
-		return false;
+		return
+			opcode == 0b1010011 && (
+				funct7 == 0b0000000 ||
+				funct7 == 0b0000100 ||
+				funct7 == 0b0001000 ||
+				funct7 == 0b0001100 ||
+				funct7 == 0b1111000);
+	}
+	static boolean isFBInstruction(int opcode, int funct7)
+	{
+		return
+			opcode == 0b1010011 && (
+				funct7 == 0b0101100 ||
+				funct7 == 0b1100000 ||
+				funct7 == 0b1101000);
+	}
+	static boolean isFCInstruction(int opcode, int funct7)
+	{
+		return
+			opcode == 0b1010011 && (
+				funct7 == 0b0010000 ||
+				funct7 == 0b0010100 ||
+				funct7 == 0b1010000);
+	}
+	static boolean isFDInstruction(int opcode, int funct7)
+	{
+		return
+			opcode == 0b1010011 && (
+				funct7 == 0b1110000 ||
+				funct7 == 0b1111000);
 	}
 
 	/* use `parse` to open a ELF file and return it's standard output as an 
@@ -323,16 +360,7 @@ public class ELFReader
 	    try
 	    {
 	        String osName = System.getProperties().getProperty("os.name");
-	        String script = null;
-	        if (osName.indexOf("Linux") != -1)
-	        {
-	            script = "./parse ";
-	        }
-	        else
-	        {
-	            script = "parse ";
-	        }
-
+	        String script = "bin/parse ";
 	        script += fileName;
 
 	        Process ps = Runtime.getRuntime().exec(script);
@@ -392,11 +420,19 @@ public class ELFReader
 				machine.instructions[i] = new UInstruction();
 			else if (isUJInstruction(opcode))
 				machine.instructions[i] = new UJInstruction();
-			else if (isFZInstruction(opcode))
-				machine.instructions[i] = new FZInstruction();
+			else if (isFAInstruction(opcode, funct7))
+				machine.instructions[i] = new FAInstruction();
+			else if (isFBInstruction(opcode, funct7))
+				machine.instructions[i] = new FBInstruction();
+			else if (isFCInstruction(opcode, funct7))
+				machine.instructions[i] = new FCInstruction();
+			else if (isFDInstruction(opcode, funct7))
+				machine.instructions[i] = new FDInstruction();
 			else {
 				hasInvalid = true;
 				machine.instructions[i] = new UnknownInstruction();
+				System.err.printf("Invalid Instruction %d: %08x\n",
+					i, code);
 			}
 
 			machine.instructions[i].code = code;
@@ -450,7 +486,7 @@ class Elf64_Ehdr
 				e_shentsize = Util.byteArray2Short(buffer, 58);
 				e_shnum = Util.byteArray2Short(buffer, 60);
 				e_shstrndx = Util.byteArray2Short(buffer, 62);
-				System.err.printf(this.toString());
+				//System.err.printf(this.toString());
 			}
 			else {
 				return -1;
@@ -506,7 +542,7 @@ class Elf64_Phdr
 		p_filesz = Util.byteArray2Long(buffer, 32);
 		p_memsz = Util.byteArray2Int(buffer, 40);
 		p_align = Util.byteArray2Short(buffer, 48);
-		System.err.printf(this.toString());
+		//System.err.printf(this.toString());
 		return 0;
 	}
 
@@ -556,7 +592,7 @@ class Elf64_Shdr
 		sh_addralign = Util.byteArray2Long(buffer, 48);
 		sh_entsize = Util.byteArray2Long(buffer, 56);
 	
-		System.err.printf(this.toString());
+		//System.err.printf(this.toString());
 		return 0;
 	}
 

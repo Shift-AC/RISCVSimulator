@@ -113,15 +113,17 @@ public class RISCVMachine
             "RISCVMachine.heapSegment"))).intValue(),
         SEGMENT_STACK = ((Integer)(Util.configManager.getConfig(
             "RISCVMachine.stackSegment"))).intValue();
-    static final int NUM_OF_MEMSEG = 13;
+    static final int NUM_OF_MEMSEG = ((Integer)(Util.configManager.getConfig(
+            "RISCVMachine.memorySegmentCount"))).intValue();
     
     static MachineStat[] MACHINE_STAT;
     static {
-        MACHINE_STAT = new MachineStat[4];
-        MACHINE_STAT[0] = new MachineStat(0, "AOK");
-        MACHINE_STAT[1] = new MachineStat(1, "INS");
-        MACHINE_STAT[2] = new MachineStat(2, "ADR");
-        MACHINE_STAT[3] = new MachineStat(3, "HLT");
+        MACHINE_STAT = new MachineStat[5];
+        MACHINE_STAT[0] = new MachineStat(0, "AOK");    // OK
+        MACHINE_STAT[1] = new MachineStat(1, "INS");    // invalid instruction
+        MACHINE_STAT[2] = new MachineStat(2, "ADR");    // invalid memory address
+        MACHINE_STAT[3] = new MachineStat(3, "NAN");    // meet NAN operation
+        MACHINE_STAT[4] = new MachineStat(4, "HLT");    // halt
     }
 
     MemorySegment[] memory;
@@ -150,7 +152,7 @@ public class RISCVMachine
         count = ((Integer)(Util.configManager.getConfig(
             "RISCVMachine.generalRegisterCount"))).intValue();
         generalRegister = new long[count];
-        generalRegister[2] = Util.STACK_BEGIN;      // register "sp"
+        generalRegister[2] = Util.STACK_BEGIN-0x100;      // register "sp"
         
         count = ((Integer)(Util.configManager.getConfig(
             "RISCVMachine.floatRegisterCount"))).intValue();
@@ -165,12 +167,14 @@ public class RISCVMachine
 
         String controlName = (String)(Util.configManager.getConfig(
                 "RISCVMachine.machineControllerName"));
-        controlName = Util.packageName + "." + controlName;
         try
         {
             controller = 
                 (MachineController)Class.forName(controlName).newInstance();
             controller.machine = this;
+            controller.initSyscall();
+            controller.initCombineLogic();
+            controller.initControlSignals();
         }
         catch (Exception e)
         {
@@ -216,6 +220,13 @@ public class RISCVMachine
 
     public boolean isRunnable()
     {
-        return true;
+        return machineStateRegister == MACHINE_STAT[0].stat;
+    }
+
+    int getPCIndex()
+    {
+        long offset = programCounter - memory[SEGMENT_TEXT].startAddress;
+        
+        return (int)(offset >>> 2);
     }
 }

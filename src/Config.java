@@ -16,12 +16,9 @@ import java.util.*;
 class ConfigUtil
 {
     static final String configPath = "config/";
-    static ConfigType[] configTypes = 
-    {
-        new IntegerConfig(),
-        new BooleanConfig(),
-        new StringConfig()
-    };
+    static final String configList = "configList";
+    static final String configType = "configType";
+    static ConfigType[] configTypes;
     static ConfigType findConfigType(char valueType)
     {
         for (ConfigType type : configTypes)
@@ -33,36 +30,77 @@ class ConfigUtil
         }
         return null;
     }
+
+    static
+    {
+        try
+        {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(
+                new FileInputStream(
+                    ConfigUtil.configPath + ConfigUtil.configType)));
+            
+            int typeCount = Integer.parseInt(reader.readLine());
+
+            configTypes = new ConfigType[typeCount];
+            for (int i = 0; i < typeCount; ++i)
+            {
+                String name = reader.readLine();
+                int ind = name.length() - 1;
+                for (; ind > -1; --ind)
+                {
+                    char c = name.charAt(ind);
+                    if (c != '\r' && c != '\n')
+                    {
+                        break;
+                    }
+                }
+                name = name.substring(0, ind + 1);
+                configTypes[i] = 
+                    (ConfigType)(Class.forName(name).newInstance());
+            }
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            Util.reportExceptionAndExit("读取配置文件configTypes时出现错误", e);
+        }
+    }
 }
 
 class ConfigManager
 {
-    ConfigFile[] files;
-    public ConfigManager(String[] fileNames)
+    ArrayList<ConfigFile> files;
+    ConfigFile searchKey = new ConfigFile();
+    public ConfigManager()
         throws FileNotFoundException,
                IOException
     {
-        files = new ConfigFile[fileNames.length];
-        for (int i = 0; i < fileNames.length; ++i)
+        BufferedReader reader = new BufferedReader(new InputStreamReader(
+            new FileInputStream(
+                ConfigUtil.configPath + ConfigUtil.configList)));
+        
+        int fileCount = Integer.parseInt(reader.readLine());
+
+        files = new ArrayList<ConfigFile>();
+        for (int i = 0; i < fileCount; ++i)
         {
-            files[i] = new ConfigFile(fileNames[i]);
+            files.add(new ConfigFile(reader.readLine()));
         }
+
+        Collections.sort(files);
     }
 
     public ConfigFile findConfigFile(String name)
     {
         if (files != null)
         {
-            for (ConfigFile file : files)
+            searchKey.name = name;
+            int index = Collections.binarySearch(files, searchKey);
+            if (index < 0)
             {
-                if (file != null)
-                {
-                    if (file.name.equals(name))
-                    {
-                        return file;
-                    }
-                }
+                return null;
             }
+            return files.get(index);
         }
         return null;
     }
@@ -112,11 +150,14 @@ class ConfigManager
     */
 }
 
-class ConfigFile
+class ConfigFile implements Comparable<ConfigFile>
 {
-    final String name;
+    String name;
     String version;
-    private Config[] configs;
+    private ArrayList<Config> configs;
+    Config searchKey = new Config();
+    public ConfigFile() {}
+
     public ConfigFile(String name)
         throws FileNotFoundException,
                IOException
@@ -126,27 +167,35 @@ class ConfigFile
         BufferedReader is = null;
         try
         {
-            System.err.println("ConfigFile: " + filePath());
+            //System.err.println("ConfigFile: " + filePath());
             is = new BufferedReader(new FileReader(filePath()));
             version = is.readLine();
 
-            LinkedList<Config> configList = new LinkedList<Config>(); 
+            configs = new ArrayList<Config>(); 
             String line;
             while ((line = is.readLine()) != null)
             {
-                Config tmp;
+                if (line.equals(""))
+                {
+                    continue;
+                }
+                if (line.charAt(0) == '#')
+                {
+                    continue;
+                }
+
+                Config tmp = null;
                 try
                 {
                     tmp = new Config(line);
                 }
                 catch (IllegalArgumentException e)
                 {
-                    continue;
+                    e.printStackTrace();
                 }
-                configList.addLast(tmp);
+                configs.add(tmp);
             }
-            configs = new Config[configList.size()];
-            configList.toArray(configs);
+            Collections.sort(configs);
         }
         finally
         {
@@ -164,26 +213,31 @@ class ConfigFile
     {
         if (configs != null)
         {
-            for (Config config : configs)
+            searchKey.name = name;
+            int index = Collections.binarySearch(configs, searchKey);
+            if (index < 0)
             {
-                if (config != null)
-                {
-                    if (config.name.equals(name))
-                    {
-                        return config;
-                    }
-                }
+                return null;
             }
+            return configs.get(index);
         }
         return null;
     }
+
+    @Override
+    public int compareTo(ConfigFile x)
+    {
+        return this.name.compareTo(x.name);
+    }
 }
 
-class Config
+class Config implements Comparable<Config>
 {
     String name;
     Object value;
     char valueType;
+
+    public Config() {}
 
     public Config(String name, String value, char valueType)
     {
@@ -213,14 +267,22 @@ class Config
         if ((this.value = (Object)myType.parse(line)) == null)
         {
             throw new IllegalArgumentException(
-                "Illegal value " + line + " for config type " + 
+                "Illegal value `" + line + "` for config type " + 
                 myType.getType());
         }
+
+        //System.err.println("Config: " + name);
     }
 
     public Object getValue()
     {
         return value;
+    }
+
+    @Override
+    public int compareTo(Config x)
+    {
+        return this.name.compareTo(x.name);
     }
 }
 
@@ -231,6 +293,7 @@ abstract class ConfigType<T>
     abstract public String getType();
 }
 
+
 class IntegerConfig extends ConfigType<Integer>
 {
     @Override
@@ -238,12 +301,26 @@ class IntegerConfig extends ConfigType<Integer>
     {
         return 'I';
     }
+
+    private boolean isWhiteSpace(char c)
+    {
+        return c == ' ' ||  c == '\t';
+    }
     @Override
     public Integer parse(String line)
     {
         int x;
         try
         {
+            int ind = line.length() - 1;
+            for (; ind > -1; --ind)
+            {
+                if (!isWhiteSpace(line.charAt(ind)))
+                {
+                    break;
+                }
+            }
+            line = line.substring(0, ind + 1);
             x = Integer.parseInt(line);
         }
         catch (Exception e)
@@ -256,6 +333,48 @@ class IntegerConfig extends ConfigType<Integer>
     public String getType()
     {
         return "Integer";
+    }
+}
+
+class LongConfig extends ConfigType<Long>
+{
+    @Override
+    public char valueType()
+    {
+        return 'L';
+    }
+
+    private boolean isWhiteSpace(char c)
+    {
+        return c == ' ' ||  c == '\t';
+    }
+    @Override
+    public Long parse(String line)
+    {
+        long x;
+        try
+        {
+            int ind = line.length() - 1;
+            for (; ind > -1; --ind)
+            {
+                if (!isWhiteSpace(line.charAt(ind)))
+                {
+                    break;
+                }
+            }
+            line = line.substring(0, ind + 1);
+            x = Long.parseLong(line, 16);
+        }
+        catch (Exception e)
+        {
+            return null;
+        }
+        return new Long(x);
+    }
+    @Override
+    public String getType()
+    {
+        return "Long";
     }
 }
 
@@ -305,6 +424,7 @@ class StringConfig extends ConfigType<String>
         return "String";
     }
 }
+
 
 /*
  * Implement in later versions

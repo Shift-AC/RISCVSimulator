@@ -199,7 +199,7 @@ public class MachineManager extends Thread
             for (int i = 0; i < segmentCount; ++i)
             {
                 byte[] dest = machine.memory[getSegmentIndex(i)].memory;
-                for (int j = 0; j < savedSegments[i].memory.length; ++i)
+                for (int j = 0; j < savedSegments[i].memory.length; ++j)
                 {
                     dest[j] = savedSegments[i].memory[j];
                 }
@@ -224,6 +224,7 @@ public class MachineManager extends Thread
     static RISCVMachine machine = null;
     static public MachineStateSnapshot snapshot = null;
     static private MachineInitInfo initInfo = null;
+    static ConsoleFrame console = new ConsoleFrame();
 
     static private boolean simulatorWorking = false; 
     static private boolean managerWorking = false;
@@ -253,15 +254,6 @@ public class MachineManager extends Thread
         return MachineManager.machine.isRunnable();
     }
 
-    static void sleepIgnoreInterrupt(long time)
-    {
-        try
-        {
-            Thread.sleep(time);
-        }
-        catch (Exception e) {}
-    }
-
     /*
      * deprecated since there's no need to read the machine itself.
      * use updateSnapshot instead.
@@ -281,7 +273,7 @@ public class MachineManager extends Thread
             {
                 return machine;
             }
-            sleepIgnoreInterrupt(50);
+            Util.sleepIgnoreInterrupt(50);
         }
         return null;
     }
@@ -306,7 +298,7 @@ public class MachineManager extends Thread
                 simulatorWorking = false;
                 return true;
             }
-            sleepIgnoreInterrupt(50);
+            Util.sleepIgnoreInterrupt(50);
         }
 
         simulatorWorking = false;
@@ -325,7 +317,7 @@ public class MachineManager extends Thread
                 simulatorWorking = false;
                 return true;
             }
-            sleepIgnoreInterrupt(50);
+            Util.sleepIgnoreInterrupt(50);
         }
 
         simulatorWorking = false;
@@ -336,7 +328,7 @@ public class MachineManager extends Thread
     {
         super(()->
         {
-            for (; true; sleepIgnoreInterrupt(20))
+            for (; true; Util.sleepIgnoreInterrupt(20))
             {
                 //System.out.println("!!!");
                 if (simulatorWorking)
@@ -396,7 +388,10 @@ public class MachineManager extends Thread
     // to modify machine state: must hold managerWorking lock.
     static private void step()
     {
-        machine.stepOperate();
+        if (machine.isRunnable())
+        {
+            machine.stepOperate();
+        }
     }
 
     static private boolean reset()
@@ -418,8 +413,13 @@ public class MachineManager extends Thread
         //notifyQueue.add("P");
     }
 
+    static SYSsetstarttime setstarttime = new SYSsetstarttime();
     static private boolean startRun()
     {
+        step();
+
+        setstarttime.call(null);
+
         String message;
         while (machine.isRunnable())
         {
@@ -435,6 +435,10 @@ public class MachineManager extends Thread
                     }
                 }
                 messageQueue.remove();
+            }
+            if (machine.instructions[machine.getPCIndex()].isBreakpoint)
+            {
+                return true;
             }
             machine.stepOperate();
         }

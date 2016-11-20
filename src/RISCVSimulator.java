@@ -22,6 +22,7 @@ class RISCVSimulatorFrame extends SFrame
     TableFloatRegViewFrame floatRegFrame;
     TableSymbolViewFrame symbolFrame;
     TableMemoryViewFrame memoryFrame;
+    ConsoleFrame consoleFrame;
 
     ProgramView programView;
 
@@ -35,18 +36,19 @@ class RISCVSimulatorFrame extends SFrame
         {
             JFileChooser fc = new JFileChooser();
             fc.setDialogTitle("打开ELF文件");
-            javax.swing.filechooser.FileFilter filter = 
+            /*javax.swing.filechooser.FileFilter filter = 
                 new javax.swing.filechooser.FileNameExtensionFilter(
                     "ELF可执行文件(*.o)", "o");
-            fc.setFileFilter(filter);
+            fc.setFileFilter(filter);*/
             fc.setMultiSelectionEnabled(false);
 
             int res = fc.showOpenDialog(me);
-
+	
             if (res == JFileChooser.APPROVE_OPTION)
+            //if (true)            
             {
-                String fileName = fc.getCurrentDirectory().getName() + "/" +
-                                  fc.getSelectedFile().getName();
+                String fileName = fc.getSelectedFile().getAbsolutePath();
+                //String fileName = "test/fecho";
                 FileInputStream is;
                 try
                 {
@@ -70,7 +72,6 @@ class RISCVSimulatorFrame extends SFrame
                     bindMachine(machine);
                 }
 
-                System.out.println("ELF loaded");
                 setDebugOptionState(STATE_RUNNABLE);
             }
         }
@@ -91,12 +92,13 @@ class RISCVSimulatorFrame extends SFrame
         @Override
         public void actionPerformed(ActionEvent e)
         {
+	System.err.printf("machineState = %d\n", MachineManager.machine.machineStateRegister);
             if (MachineManager.checkRunnable())
             {
                 updateMachine();
                 setDebugOptionState(STATE_RUNNING);
                 MachineManager.messageQueue.add("S");
-                MachineManager.sleepIgnoreInterrupt(100);
+                Util.sleepIgnoreInterrupt(100);
                 refreshState();
                 setDebugOptionState(STATE_RUNNABLE);
                 return;
@@ -111,6 +113,7 @@ class RISCVSimulatorFrame extends SFrame
         @Override
         public void actionPerformed(ActionEvent e)
         {
+	System.err.printf("machineState = %d\n", MachineManager.machine.machineStateRegister);
             if (MachineManager.checkRunnable())
             {
                 updateMachine();
@@ -198,6 +201,15 @@ class RISCVSimulatorFrame extends SFrame
             symbolFrame.setVisible(true);
         }
     };
+    SMenuItem mnuConsole;
+    ActionListener alsConsole = new ActionListener()
+    {
+        @Override
+        public void actionPerformed(ActionEvent e)
+        {
+            consoleFrame.setVisible(true);
+        }
+    };
 
     WindowAdapter wlsFrame = new WindowAdapter()
     {
@@ -217,14 +229,36 @@ class RISCVSimulatorFrame extends SFrame
         initializeMenu();
         setDebugOptionState(STATE_NOTREADY);
 
+        consoleFrame = MachineManager.console;
+
         //pneFrame.
         setLayout(new GridLayout(1, 1));
         programView = new ProgramView();
         ((JFrame)this).add(programView);
+
+        this.addKeyListener(new KeyAdapter()
+        {
+            @Override
+            public void keyPressed(KeyEvent e)
+            {
+                int key = e.getKeyCode();
+                if (key == KeyEvent.VK_PAGE_UP || key == KeyEvent.VK_PAGE_DOWN)
+                {
+                    int delta = 
+                        key == KeyEvent.VK_PAGE_DOWN ? 
+                        programView.codeLinesOnScreen : 
+                        -programView.codeLinesOnScreen;
+                    
+                    programView.moveStartIndex(delta);
+                    programView.refresh();
+                }
+            }
+        });
     }
 
     void checkExit()
     {
+        Util.closemanager.call(null);
         System.exit(0);
     }
 
@@ -240,11 +274,11 @@ class RISCVSimulatorFrame extends SFrame
         mnuExit.addActionListener(alsExit);
 
         mnuDebug = new SMenu("调试(D)", 'D', menu);
-        mnuStep = new SMenuItem("单步调试(S)", 'S', mnuDebug);
+        mnuStep = new SMenuItem("下一指令(N)", 'N', mnuDebug);
         mnuStep.addActionListener(alsStep);
         mnuRun = new SMenuItem("运行(R)", 'R', mnuDebug);
         mnuRun.addActionListener(alsRun);
-        mnuTerminate = new SMenuItem("停止(T)", 'T', mnuDebug);
+        mnuTerminate = new SMenuItem("停止(K)", 'K', mnuDebug);
         mnuTerminate.addActionListener(alsTerminate);
         mnuPause = new SMenuItem("暂停(P)", 'P', mnuDebug);
         mnuPause.addActionListener(alsPause);
@@ -260,8 +294,10 @@ class RISCVSimulatorFrame extends SFrame
         mnuGeneralRegister.addActionListener(alsGeneralRegister);
         mnuFloatRegister = new SMenuItem("浮点寄存器(F)", 'F', mnuView);
         mnuFloatRegister.addActionListener(alsFloatRegister);
-        mnuSymbolTable = new SMenuItem("符号表(T)", 'T', mnuView);
+        mnuSymbolTable = new SMenuItem("符号表(S)", 'S', mnuView);
         mnuSymbolTable.addActionListener(alsSymbolTable);
+        mnuConsole = new SMenuItem("控制台(T)", 'T', mnuView);
+        mnuConsole.addActionListener(alsConsole);
     }
 
     private static final int
@@ -295,6 +331,7 @@ class RISCVSimulatorFrame extends SFrame
             generalRegFrame.setEnabled(true);
             floatRegFrame.setEnabled(true);
             symbolFrame.setEnabled(true);
+            //mnuConsole.setEnabled(true);
             break;
         case STATE_NOTREADY:
             mnuStep.setEnabled(false);
@@ -302,6 +339,7 @@ class RISCVSimulatorFrame extends SFrame
             mnuTerminate.setEnabled(false);
             mnuPause.setEnabled(false);
             mnuContinue.setEnabled(false);
+            //mnuConsole.setEnabled(false);
             break;
         }
     } 
@@ -319,6 +357,80 @@ class RISCVSimulatorFrame extends SFrame
             MachineManager.snapshot.floatRegister);
         symbolFrame = new TableSymbolViewFrame(
             MachineManager.snapshot.symbol);
+        consoleFrame.reset();
+
+        // debug
+        //testSyscall();
+    }
+
+    private void testSyscall()
+    {
+        MachineController controller = MachineManager.machine.controller;
+
+        Syscall syssbrk = new SYSsbrk();
+        syssbrk.num = 214;
+        syssbrk.call(MachineManager.machine);
+
+        Syscall sysopen = new SYSopen()
+        {
+            @Override
+            public void call(RISCVMachine machine)
+            {
+                long[] reg = machine.generalRegister;
+                reg[11] = 0;
+                reg[12] = 0x1FF;
+                super.call(machine);
+            }
+            @Override
+            protected byte[][] getMessages(RISCVMachine machine)
+            {
+                byte[][] res = new byte[2][];
+                long[] reg = machine.generalRegister;
+                res[0] = (num + " " + reg[10] + " " + reg[11] + " " + reg[12] + " " + reg[13] + "\n").getBytes();
+                res[1] = "5 a.txt".getBytes();
+                return res;
+            }
+        };
+        sysopen.num = 1024;
+
+        Syscall sysread = new SYSread()
+        {
+            @Override
+            public void call(RISCVMachine machine)
+            {
+                //machine.generalRegister[10] = 0;
+                machine.generalRegister[12] = 11;
+                super.call(machine);
+            }
+        };
+        sysread.num = 63;
+
+        Syscall syswrite = new SYSwrite()
+        {
+            @Override
+            public void call(RISCVMachine machine)
+            {
+                machine.generalRegister[10] = 1;
+                machine.generalRegister[12] = 11;
+                MachineManager.console.writeToScreen("hello world".getBytes());
+            }
+            @Override
+            protected byte[][] getMessages(RISCVMachine machine)
+            {
+                byte[][] res = new byte[2][];
+                long[] reg = machine.generalRegister;
+                res[0] = (num + " " + reg[10] + " " + reg[11] + " " + 
+                    reg[12] + " " + reg[13] + "\n").getBytes();
+                res[1] = "11 hello world".getBytes();
+                return res;
+            }
+        };
+        syswrite.num = 64;
+
+        sysopen.call(MachineManager.machine);
+        sysread.call(MachineManager.machine);
+        syswrite.call(MachineManager.machine);
+        System.out.println("????????");
     }
 
     public void notifyProgram()
@@ -352,10 +464,6 @@ class RISCVSimulatorFrame extends SFrame
 
 public class RISCVSimulator
 {
-    public static void checkFile()
-    {
-        
-    }
 
     public static void init()
     {

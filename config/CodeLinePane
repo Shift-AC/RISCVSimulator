@@ -1,5 +1,5 @@
 1.0
-S fontName=Courier New
+S fontName=Droid Sans Mono
 S breakpointPic=pic/breakpoint
 S processPic=pic/processing
-S breakpointAndProcessPic=processingBreakpoint
+S breakpointAndProcessPic=pic/processingBreakpoint

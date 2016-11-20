@@ -17,7 +17,7 @@ int asmtot = 0;
 
 void Objdump()
 {
-	char syscmd[LL] = "./objdump -D ";
+	char syscmd[LL] = "tools/objdump -D ";
 	strcat(syscmd, objdumpIn);
 	strcat(syscmd, " > ");
 	strcat(syscmd, objdumpOut);

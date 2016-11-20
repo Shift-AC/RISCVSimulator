@@ -1,0 +1,36 @@
+# FSGN
+I needGRRead=0
+I needFRRead=1
+I needIALU=0
+I needFALU=1
+I needMRead=0
+I needMWrite=0
+I needGRWrite=0
+I needFRWrite=1 
+
+I grLength=0
+
+I iALUSetCnd=0
+I iALUA=0
+I iALUB=0
+I iALUOp=0
+I iALUIsUnsigned=0
+I iALUIsHigh=0
+I iALULength=0
+
+I fALUSetCnd=0
+I fALUA=1
+I fALUB=1
+I fALUC=0
+I fALUOp=120
+
+I mAddr=0
+I mData=0
+I mLength=0
+I mIsUnsigned=0
+
+I grData=0
+I frData=0
+
+I pcSrc=0
+I pcCnd=0
