@@ -120,6 +120,11 @@ class NativeSyscall extends Syscall
 
         long ret = 0;
         is.read(buf, 0, 1);
+	//System.out.println(buf[0] + "");
+        if (buf[0] == '\n')
+        {
+            is.read(buf, 0, 1);
+        }
         boolean isMinus = buf[0] == '-';
         if (!isMinus)
         {
@@ -128,14 +133,11 @@ class NativeSyscall extends Syscall
         while (is.available() != 0)
         {
             is.read(buf, 0, 1);
-            if (buf[0] == '\n')
-            {
-                continue;
-            }
-            if (buf[0] == ' ')
+            if (buf[0] == ' ' || buf[0] == '\n')
             {
                 break;
             }
+	//System.out.println(buf[0] + "");
             ret = ret * 10 + buf[0] - '0';
         }
         return isMinus ? -ret: ret;
@@ -358,7 +360,7 @@ class SYSexit extends Syscall
 {
     public void call(RISCVMachine machine)
     {
-        machine.machineStateRegister = RISCVMachine.MACHINE_STAT[3].stat;
+        machine.machineStateRegister = RISCVMachine.MACHINE_STAT[4].stat;
     }
 }
 
@@ -383,6 +385,7 @@ abstract class PseudoSyscall extends NativeSyscall
             }
             //System.out.println("call");
             stdin.flush();
+
         }
         catch (Exception e)
         {
@@ -413,6 +416,7 @@ abstract class StreamParameteredPseudoSyscall
             }
             //System.out.println("call");
             stdin.flush();
+
         }
         catch (Exception e)
         {
@@ -445,7 +449,6 @@ class SYSstdin extends StreamParameteredPseudoSyscall
     {
         return bytesToWrite;
     }
-
 }
 
 class SYSclosemanager extends PseudoSyscall

@@ -58,7 +58,8 @@ class Util
     }
 
 
-    static String version = "1.0.0001a";
+    static String version = "1.0.0001r";
+
     static ConfigManager configManager;
     static SYSclosemanager closemanager = new SYSclosemanager();
     static void reportException(String description, Exception e)

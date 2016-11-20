@@ -167,7 +167,7 @@ class ConfigFile implements Comparable<ConfigFile>
         BufferedReader is = null;
         try
         {
-            System.err.println("ConfigFile: " + filePath());
+            //System.err.println("ConfigFile: " + filePath());
             is = new BufferedReader(new FileReader(filePath()));
             version = is.readLine();
 
@@ -301,9 +301,10 @@ class IntegerConfig extends ConfigType<Integer>
     {
         return 'I';
     }
+
     private boolean isWhiteSpace(char c)
     {
-        return c == ' ' || c == '\t';
+        return c == ' ' ||  c == '\t';
     }
     @Override
     public Integer parse(String line)
@@ -332,6 +333,48 @@ class IntegerConfig extends ConfigType<Integer>
     public String getType()
     {
         return "Integer";
+    }
+}
+
+class LongConfig extends ConfigType<Long>
+{
+    @Override
+    public char valueType()
+    {
+        return 'L';
+    }
+
+    private boolean isWhiteSpace(char c)
+    {
+        return c == ' ' ||  c == '\t';
+    }
+    @Override
+    public Long parse(String line)
+    {
+        long x;
+        try
+        {
+            int ind = line.length() - 1;
+            for (; ind > -1; --ind)
+            {
+                if (!isWhiteSpace(line.charAt(ind)))
+                {
+                    break;
+                }
+            }
+            line = line.substring(0, ind + 1);
+            x = Long.parseLong(line, 16);
+        }
+        catch (Exception e)
+        {
+            return null;
+        }
+        return new Long(x);
+    }
+    @Override
+    public String getType()
+    {
+        return "Long";
     }
 }
 

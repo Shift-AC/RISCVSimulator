@@ -8,16 +8,32 @@ public class GeneID {
     {
         PrintWriter pw = new PrintWriter(
                          new BufferedWriter(
-                         new FileWriter("test.txt", false)));
+                         new FileWriter("config/RISCVInstructionNew", false)));
+        String prnt;
 
+	// help info
+	pw.write("# /config/RISCVInstruction\n");
+	pw.write("# \tstores the IDs of instructions.\n");
+	pw.write("# \t\"length\" indicates the number of instructions.\n");
+	pw.write("# \tAn ID is a 64-bit integer. From MSB, every 8-bit means\n");
+	pw.write("# \t\topcode, funct7, funct6, funct5, funct3, funct2, rs2,\n");
+	pw.write("# respectively. The lowest 8-bit is preserved for future use.\n\n");
+
+	// length
         int length = args.length;
-        for (int cnt = 0; cnt < length; cnt+=2) {
+        prnt = String.format("I length=%d\n", length/2);
+        pw.write(prnt);
+
+	// instruction IDs
+
+        for (int cnt = 0; cnt < length-1; cnt+=2) {
+System.err.printf("cnt = %d\n", cnt);
             byte[] b = args[cnt].getBytes();
             int code = 0;
             for (int i = 0; i < 32; ++i) {
                 b[i] -= '0';
                 System.err.printf("%x", b[i]);
-                code |= b[i] << (31 - i);
+                code |= (b[i] << (31 - i));
             }
             System.err.println();
 
@@ -43,10 +59,14 @@ public class GeneID {
                 ins = new UInstruction();
             else if (ELFReader.isUJInstruction(opcode))
                 ins = new UJInstruction();
-            else if (ELFReader.isFZInstruction(opcode, funct7))
-                ins = new FZInstruction();
-            else if (ELFReader.isFJInstruction(opcode, funct7))
-                ins = new FJInstruction();
+            else if (ELFReader.isFAInstruction(opcode, funct7))
+                ins = new FAInstruction();
+            else if (ELFReader.isFBInstruction(opcode, funct7))
+                ins = new FBInstruction();
+            else if (ELFReader.isFCInstruction(opcode, funct7))
+                ins = new FCInstruction();
+            else if (ELFReader.isFDInstruction(opcode, funct7))
+                ins = new FDInstruction();
             else {
                 System.err.println("error");
                 return;
@@ -56,7 +76,7 @@ public class GeneID {
             ins.asm = args[cnt+1];
             ins.isBreakpoint = false;
 
-            String prnt = String.format("L %s=%016x\r\n", ins.asm,
+            prnt = String.format("L %s=%016x\n", ins.asm,
                 ins.generateID());
             pw.write(prnt);
         }

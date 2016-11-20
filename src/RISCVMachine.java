@@ -113,7 +113,8 @@ public class RISCVMachine
             "RISCVMachine.heapSegment"))).intValue(),
         SEGMENT_STACK = ((Integer)(Util.configManager.getConfig(
             "RISCVMachine.stackSegment"))).intValue();
-    static final int NUM_OF_MEMSEG = 13;
+    static final int NUM_OF_MEMSEG = ((Integer)(Util.configManager.getConfig(
+            "RISCVMachine.memorySegmentCount"))).intValue();
     
     static MachineStat[] MACHINE_STAT;
     static {
@@ -151,7 +152,7 @@ public class RISCVMachine
         count = ((Integer)(Util.configManager.getConfig(
             "RISCVMachine.generalRegisterCount"))).intValue();
         generalRegister = new long[count];
-        generalRegister[2] = Util.STACK_BEGIN;      // register "sp"
+        generalRegister[2] = Util.STACK_BEGIN-0x100;      // register "sp"
         
         count = ((Integer)(Util.configManager.getConfig(
             "RISCVMachine.floatRegisterCount"))).intValue();
@@ -172,6 +173,8 @@ public class RISCVMachine
                 (MachineController)Class.forName(controlName).newInstance();
             controller.machine = this;
             controller.initSyscall();
+            controller.initCombineLogic();
+            controller.initControlSignals();
         }
         catch (Exception e)
         {

@@ -36,20 +36,19 @@ class RISCVSimulatorFrame extends SFrame
         {
             JFileChooser fc = new JFileChooser();
             fc.setDialogTitle("打开ELF文件");
-            javax.swing.filechooser.FileFilter filter = 
+            /*javax.swing.filechooser.FileFilter filter = 
                 new javax.swing.filechooser.FileNameExtensionFilter(
                     "ELF可执行文件(*.o)", "o");
-            fc.setFileFilter(filter);
+            fc.setFileFilter(filter);*/
             fc.setMultiSelectionEnabled(false);
 
             int res = fc.showOpenDialog(me);
-
+	
             if (res == JFileChooser.APPROVE_OPTION)
+            //if (true)            
             {
-                //String fileName = fc.getCurrentDirectory().getName() + "/" +
-                //                  fc.getSelectedFile().getName();
                 String fileName = fc.getSelectedFile().getAbsolutePath();
-                
+                //String fileName = "test/fecho";
                 FileInputStream is;
                 try
                 {
@@ -93,6 +92,7 @@ class RISCVSimulatorFrame extends SFrame
         @Override
         public void actionPerformed(ActionEvent e)
         {
+	System.err.printf("machineState = %d\n", MachineManager.machine.machineStateRegister);
             if (MachineManager.checkRunnable())
             {
                 updateMachine();
@@ -113,6 +113,7 @@ class RISCVSimulatorFrame extends SFrame
         @Override
         public void actionPerformed(ActionEvent e)
         {
+	System.err.printf("machineState = %d\n", MachineManager.machine.machineStateRegister);
             if (MachineManager.checkRunnable())
             {
                 updateMachine();
@@ -251,13 +252,6 @@ class RISCVSimulatorFrame extends SFrame
                     programView.moveStartIndex(delta);
                     programView.refresh();
                 }
-                if (key == KeyEvent.VK_DOWN || key == KeyEvent.VK_UP)
-                {
-                    int delta = key == KeyEvent.VK_DOWN ? 1 : -1;
-
-                    programView.moveStartIndex(delta);
-                    programView.refresh();
-                }
             }
         });
     }
@@ -284,7 +278,7 @@ class RISCVSimulatorFrame extends SFrame
         mnuStep.addActionListener(alsStep);
         mnuRun = new SMenuItem("运行(R)", 'R', mnuDebug);
         mnuRun.addActionListener(alsRun);
-        mnuTerminate = new SMenuItem("停止(T)", 'T', mnuDebug);
+        mnuTerminate = new SMenuItem("停止(K)", 'K', mnuDebug);
         mnuTerminate.addActionListener(alsTerminate);
         mnuPause = new SMenuItem("暂停(P)", 'P', mnuDebug);
         mnuPause.addActionListener(alsPause);
@@ -393,7 +387,7 @@ class RISCVSimulatorFrame extends SFrame
                 byte[][] res = new byte[2][];
                 long[] reg = machine.generalRegister;
                 res[0] = (num + " " + reg[10] + " " + reg[11] + " " + reg[12] + " " + reg[13] + "\n").getBytes();
-                res[1] = "10 test/a.txt".getBytes();
+                res[1] = "5 a.txt".getBytes();
                 return res;
             }
         };

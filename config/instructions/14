@@ -1,0 +1,36 @@
+# LHU
+I needGRRead=1
+I needFRRead=0
+I needIALU=1
+I needFALU=0
+I needMRead=1
+I needMWrite=0
+I needGRWrite=1
+I needFRWrite=0 
+
+I grLength=8
+
+I iALUSetCnd=0
+I iALUA=0
+I iALUB=2
+I iALUOp=0
+I iALUIsUnsigned=0
+I iALUIsHigh=0
+I iALULength=8
+
+I fALUSetCnd=0
+I fALUA=0
+I fALUB=0
+I fALUC=0
+I fALUOp=0
+
+I mAddr=0
+I mData=0
+I mLength=2
+I mIsUnsigned=1
+
+I grData=1
+I frData=0
+
+I pcSrc=0
+I pcCnd=0

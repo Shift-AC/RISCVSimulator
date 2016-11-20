@@ -29,11 +29,11 @@ void write_return(int fd, rio_t *prio, long long ret);
 
 static int heapStAds = 0x8048000;
 static char s[1000000];
-static char buffer[10000000] = "hello world";
+static char buffer[10000000];
 static int No, len;
 static long long startTime;
 static long long a0, a1, a2, a3;
-static char *head = buffer, *tail = buffer + 20;
+static char *head = buffer, *tail = buffer;
 static struct tms tmp;
 
 static const int listenPort = 2333;
@@ -89,24 +89,21 @@ void parse_syscall(int fd, rio_t *prio)
     case 63:
         if (a0 == 0)
         {
+            if (a2 == 0)
+            {
+                break;
+            }
+            if (tail == head)
+            {
+                Rio_readlineb(prio, lineBuf, MAXLINE);
+                tail += read_byte_stream(fd, prio, tail);
+            }
             int len;
             int i;
             len = min(a2, (long long)(tail - head)); 
             for (i = 0; i < len; ++i)
                 s[i] = head[i];
             head += len;
-            a2 -= len;
-            while (a2 > 0)
-            {
-                Rio_readlineb(prio, lineBbuf, MAXLINE);
-                tail += read_byte_stream(fd, prio, tail);
-                len = min(a2, (long long)(tail - head)); 
-                for (int j = 0; j < len; ++j)
-                    s[i + j] = head[j];
-                i += len;
-                head += len;
-                a2 -= len;
-            }
             write_return(fd, prio, len);
             write_byte_stream(fd, prio, s, len);
         }

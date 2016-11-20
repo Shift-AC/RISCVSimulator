@@ -1,0 +1,36 @@
+# MULHSU
+I needGRRead=1
+I needFRRead=0
+I needIALU=1
+I needFALU=0
+I needMRead=0
+I needMWrite=0
+I needGRWrite=1
+I needFRWrite=0 
+
+I grLength=8
+
+I iALUSetCnd=0
+I iALUA=0
+I iALUB=0
+I iALUOp=2
+I iALUIsUnsigned=2
+I iALUIsHigh=1
+I iALULength=8
+
+I fALUSetCnd=0
+I fALUA=0
+I fALUB=0
+I fALUC=0
+I fALUOp=0
+
+I mAddr=0
+I mData=0
+I mLength=0
+I mIsUnsigned=0
+
+I grData=0
+I frData=0
+
+I pcSrc=0
+I pcCnd=0

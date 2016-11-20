@@ -1,8 +1,6 @@
 /bin/*
 /ref/*
 /tmp/*
-/test/*
-/tools/*
 *.7z
 *.rar
 *.zip
