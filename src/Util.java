@@ -16,6 +16,7 @@ class Util
 
     static final long STACK_END = 0x0FFFFFFFFF000000L;
     static final long STACK_BEGIN = 0x0FFFFFFFFF800000L;
+    static long HEAP_BEGIN = 0;
 
     static final String[] NAMES_OF_MEMSEG = new String[]{
         "UNDEF", ".text", ".rodata", ".init_array", ".fini_array",
@@ -58,7 +59,7 @@ class Util
     }
 
 
-    static String version = "1.0.0001r";
+    static String version = "1.0.0001a";
 
     static ConfigManager configManager;
     static SYSclosemanager closemanager = new SYSclosemanager();

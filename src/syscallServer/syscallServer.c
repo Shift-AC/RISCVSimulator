@@ -35,6 +35,7 @@ static long long startTime;
 static long long a0, a1, a2, a3;
 static char *head = buffer, *tail = buffer;
 static struct tms tmp;
+struct timeval tv_begin, tv_end;
 
 static const int listenPort = 2333;
 
@@ -122,16 +123,23 @@ void parse_syscall(int fd, rio_t *prio)
         write_return(fd, prio, lseek(a0, a1, a2));
         break;
     case 169:
+	gettimeofday(&tv_end, NULL);
         write_return(fd, prio, times(&tmp) - startTime);
+	tmp.tms_utime = (tv_end.tv_sec - tv_begin.tv_sec);
+        write_byte_stream(fd, prio, &tmp, sizeof(struct tms));
         break;
     case 2147483647:
-        startTime = times(&tmp);
+	startTime = times(&tmp);
+        gettimeofday(&tv_begin, NULL);
         break;
     case 2147483646:
         tail += read_byte_stream(fd, prio, tail);
         break;
     case 2147483645:
         exit(0);
+    case 2147483644:
+        heapStAds = a0;
+        break;
     }
 }
 

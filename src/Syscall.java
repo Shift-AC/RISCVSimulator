@@ -98,7 +98,7 @@ class NativeSyscall extends Syscall
         try
         {
             machine.generalRegister[10] = getLongFromStdout();
-            System.out.println("ret "  + machine.generalRegister[10]);
+            //System.out.println("Ret: "  + machine.generalRegister[10]);
         }
         catch (Exception e)
         {
@@ -120,7 +120,7 @@ class NativeSyscall extends Syscall
 
         long ret = 0;
         is.read(buf, 0, 1);
-	//System.out.println(buf[0] + "");
+	////System.out.println(buf[0] + "");
         if (buf[0] == '\n')
         {
             is.read(buf, 0, 1);
@@ -137,7 +137,7 @@ class NativeSyscall extends Syscall
             {
                 break;
             }
-	//System.out.println(buf[0] + "");
+	////System.out.println(buf[0] + "");
             ret = ret * 10 + buf[0] - '0';
         }
         return isMinus ? -ret: ret;
@@ -260,11 +260,11 @@ abstract class StreamReturnedNativeSyscall extends NativeSyscall
 
             while (is.available() == 0);
 
-            //System.out.println("st " + len + " " + is.available());
+            ////System.out.println("st " + len + " " + is.available());
 
             byte[] arr = new byte[len];
             is.read(arr, 0, len);
-            //System.out.println("retstream " + new String(arr));
+            ////System.out.println("retstream " + new String(arr));
             return arr;
         }
         catch (Exception e)
@@ -311,6 +311,28 @@ class SYSread extends StreamReturnedNativeSyscall
     }
 }
 
+class SYStimes extends StreamReturnedNativeSyscall
+{
+    long address;
+    @Override
+    public void call(RISCVMachine machine)
+    {
+        address = machine.generalRegister[10];
+        super.call(machine);
+    }
+    @Override
+    protected void setReturnValue(RISCVMachine machine)
+    {
+        super.setReturnValue(machine);
+        byte[] readValue = readStreamFromStdout();
+        boolean result = saveBytes(machine, address, readValue);
+        if (result = false)
+        {
+            machine.machineStateRegister = RISCVMachine.MACHINE_STAT[2].stat;
+        }
+    }
+}
+
 class SYSwrite extends StreamParameteredNativeSyscall
 {
     @Override
@@ -351,11 +373,6 @@ class SYSsbrk extends NativeSyscall
     // standard NativeSyscall
 }
 
-class SYStimes extends NativeSyscall
-{
-    // standard NativeSyscall
-}
-
 class SYSexit extends Syscall
 {
     public void call(RISCVMachine machine)
@@ -377,13 +394,13 @@ abstract class PseudoSyscall extends NativeSyscall
         }
         try
         {
-            //System.out.println("calling");
+            ////System.out.println("calling");
             for (byte[] message : messages)
             {
-                //System.out.println("`" + new String(message) + '`');
+                ////System.out.println("`" + new String(message) + '`');
                 stdin.write(message);
             }
-            //System.out.println("call");
+            ////System.out.println("call");
             stdin.flush();
 
         }
@@ -408,13 +425,13 @@ abstract class StreamParameteredPseudoSyscall
         }
         try
         {
-            //System.out.println("calling");
+            ////System.out.println("calling");
             for (byte[] message : messages)
             {
-                //System.out.println("`" + new String(message) + '`');
+                ////System.out.println("`" + new String(message) + '`');
                 stdin.write(message);
             }
-            //System.out.println("call");
+            ////System.out.println("call");
             stdin.flush();
 
         }
@@ -447,6 +464,7 @@ class SYSstdin extends StreamParameteredPseudoSyscall
     @Override
     protected byte[] getParamStream(RISCVMachine machine)
     {
+        //System.out.println(new String(bytesToWrite));
         return bytesToWrite;
     }
 }
@@ -457,6 +475,23 @@ class SYSclosemanager extends PseudoSyscall
     {
         this.name = new String("closemanager");
         this.num = 2147483645;
+    }
+}
+
+class SYSsetheap extends PseudoSyscall
+{
+    public SYSsetheap()
+    {
+        this.name = new String("setheap");
+        this.num = 2147483644;
+    }
+    @Override
+    public byte[][] getMessages(RISCVMachine machine)
+    {
+        byte[] arr = (num + " " + Util.HEAP_BEGIN + " 0 0 0\n").getBytes();
+	byte[][] res = new byte[1][];
+        res[0] = arr;
+        return res;
     }
 }
 

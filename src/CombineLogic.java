@@ -617,14 +617,14 @@ class IntegerALU extends CombineLogic
         byte[] bval2 = long2byteArray(val2, isUnsigned);
 
         int length = isUnsigned ? 9 : 8;
-        System.err.printf("bval1: ");
+        /*System.err.printf("bval1: ");
         for (int i = 0; i < length; ++i)
             System.err.printf("%02x", bval1[i]);
         System.err.println();
         System.err.printf("bval2: ");
         for (int i = 0; i < length; ++i)
             System.err.printf("%02x", bval2[i]);
-        System.err.println();
+        System.err.println();*/
 
         BigInteger div1 = new BigInteger(bval1);
         BigInteger div2 = new BigInteger(bval2);
@@ -642,10 +642,10 @@ class IntegerALU extends CombineLogic
             for (int i = 0; i < 8-ans.length; ++i)
                 res[i] = (byte)0xFF;
         }
-        System.err.printf("res : ");
-        for (int i = 0; i < 8; ++i)
-            System.err.printf("%02x", res[i]);
-        System.err.println();
+        /*System.err.printf("res : ");
+        //for (int i = 0; i < 8; ++i)
+        //    System.err.printf("%02x", res[i]);
+        //System.err.println();*/
 
         return byteArray2Long(res, 0);
     }

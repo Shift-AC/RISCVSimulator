@@ -639,6 +639,9 @@ java程序与本地程序交互的方法至少有两种，一种是利用`Runtim
 
 为了应对这样的情况，我们定义了伪系统调用（`PseudoSyscall`类），它并不是RISCV程序真正会调用的系统调用，而是我们为了通知`syscallServer`而定义的一些伪操作。如对于从控制台输入，我们向server发送接收到的字符串并让server存储到缓冲区，当我们从文件描述符0读取字串时，server会返回缓冲区中的内容。
 
+本程序实现的系统调用有：
+`open`, `close`, `sbrk`, `times`, `read`, `write`, `lseek`, `isatty`.
+
 #### 系统架构概述
 
 ##### 总述
@@ -1164,6 +1167,12 @@ typedef struct {
     }
     ```
     
+- `test/dhry2.1`是`dhrystone`所在的目录
+
+    为符合前述测试规则，本程序所附的`dhrystone`进行了一些修改。目录下的`dry2`，`dry2Reg`是可运行的。
+
+    若要自行编译`dhrystone`，需要修改`Makefile`，正确设置编译器路径。
+
 ## 引用
 
 - `syscallManager`的实现用到了`csapp.c`与`csapp.h`，这是_CS:APP_书本所附的的网络材料。

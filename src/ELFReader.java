@@ -167,6 +167,8 @@ public class ELFReader
 		// set heap and stack memory
 		final int HEAP = machine.SEGMENT_HEAP;
 		final int STACK = machine.SEGMENT_STACK;
+		Util.HEAP_BEGIN = proHeader.p_vaddr + proHeader.p_memsz;
+		(new SYSsetheap()).call(null);
 		machine.memory[HEAP].startAddress = proHeader.p_vaddr + proHeader.p_memsz;
 		machine.memory[HEAP].endAddress = machine.memory[HEAP].startAddress + 0x10000000;	// 256 MB
 		machine.memory[HEAP].readable = true;
