@@ -437,6 +437,11 @@ class RISCVSimulatorFrame extends SFrame
     {
         refreshState();
         setDebugOptionState(STATE_RUNNABLE);
+        JOptionPane.showMessageDialog(
+            null, 
+            "虚拟机已停止。",
+            "消息",
+            JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void refreshState()
