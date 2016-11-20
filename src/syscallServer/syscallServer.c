@@ -70,6 +70,7 @@ void doit(int fd)
 
 void parse_syscall(int fd, rio_t *prio)
 {
+    char lineBuf[256];
     switch (No)
     {
     case 214:
@@ -89,10 +90,23 @@ void parse_syscall(int fd, rio_t *prio)
         if (a0 == 0)
         {
             int len;
+            int i;
             len = min(a2, (long long)(tail - head)); 
-            for (int i = 0; i < len; ++i)
+            for (i = 0; i < len; ++i)
                 s[i] = head[i];
             head += len;
+            a2 -= len;
+            while (a2 > 0)
+            {
+                Rio_readlineb(prio, lineBbuf, MAXLINE);
+                tail += read_byte_stream(fd, prio, tail);
+                len = min(a2, (long long)(tail - head)); 
+                for (int j = 0; j < len; ++j)
+                    s[i + j] = head[j];
+                i += len;
+                head += len;
+                a2 -= len;
+            }
             write_return(fd, prio, len);
             write_byte_stream(fd, prio, s, len);
         }

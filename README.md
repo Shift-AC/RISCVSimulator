@@ -607,4 +607,77 @@ java程序与本地程序交互的方法至少有两种，一种是利用`Runtim
 
 ### 综合测试
 
-`test/hello.o`是一个可加载并运行的程序。
+- 测试规则
+    在测试中，为避免D扩展指令的使用，我们需要尽量避免C库函数的使用。直观的例子是，我们不能使用printf而必须使用write系统调用来输出。
+    
+    同时，在使用未初始化的全局变量时，RISCV-toolchain的编译器会初始化比.bss段的长度大的内存区域（页对齐？），这使得我们不能使用未初始化的全局变量。
+
+在控制台可以看到输出的结果。
+
+- `test/hello`是一个可加载并运行的程序。
+
+    ```c
+    // hello.c
+    // 输入：
+    //    无
+    // 输出：
+    //    Hello World!
+    //
+    #include <unistd.h>
+
+    char arr[] = "Hello World!\n";
+
+    int main()
+    {
+        write(1, arr, 13);
+        return 0;
+    }
+    ```
+
+- `test/sort`是一个可加载并运行的程序。
+
+    ```c
+    // fsort.c
+    // 输入：
+    //   无
+    // 输出：
+    //   
+    ```
+
+- `test/fsort`是一个可加载并运行的程序。
+
+    ```c
+    // fsort.c
+    // 输入：
+    //   无
+    // 输出：
+    //   
+    ```
+
+- `test/fecho`是一个可加载并运行的程序。
+
+    ```c
+    // fecho.c
+    // 输入：
+    //   test/1.txt
+    // 输出：
+    //   hello world!!
+    //
+    #include <unistd.h>
+    #include <sys/types.h>
+    #include <sys/stat.h>
+    #include <fcntl.h>
+
+    int main()
+    {
+        char fileName[20];
+        int cnt = read(0, fileName, 20);
+        fileName[cnt - 1] = 0;
+
+        int fd = open(fileName, O_RDONLY, 0777);
+
+        read(fd, fileName, 13);
+        fileName[13] = '\n';
+        write(1, fileName, 14);
+    }
+    ```
