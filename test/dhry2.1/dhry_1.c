@@ -341,7 +341,7 @@ main ()
 #ifdef TIMES
     Microseconds = (float) User_Time
                         / (float) Number_Of_Runs;
-    Dhrystones_Per_Second = (float) Number_Of_Runs / (float) User_Time;
+    Dhrystones_Per_Second = (float) Number_Of_Runs / ((float) User_Time / 1000000);
 #else
     Microseconds = (float) User_Time
                         / ((float) HZ * ((float) Number_Of_Runs));

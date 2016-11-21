@@ -8,6 +8,14 @@ To initialize your workspace after your first `git clone` operation, use __init.
 
 ## 安装程序
 
+```sh
+chmod 777 *.sh
+./init.sh
+./compile.sh
+```
+
+如上所示，运行`init.sh`初始化工作区，之后运行`compile.sh`以完成编译安装。推荐在完成编译之后将riscv-toolchain中附带的`objdump`程序复制到`tools/`文件夹。（也可使用程序包中附带的objdump程序，但它可能与特定的系统不兼容）
+
 运行`init.sh`初始化工作区，之后运行`compile.sh`以完成编译安装。推荐在完成编译之后将riscv-toolchain中附带的`objdump`程序复制到`tools/`文件夹。（程序包中附带的objdump程序可能与特定的系统不兼容）
 
 ## 程序功能简述
@@ -26,7 +34,7 @@ To initialize your workspace after your first `git clone` operation, use __init.
 
 ## 使用程序
 
-利用`run.sh`运行程序。
+利用`run.sh`运行程序。在运行程序之前，请务必确认用户有执行`tools/objdump`的权限。
 
 进入程序时，程序显示如下图：
 

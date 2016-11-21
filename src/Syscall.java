@@ -375,9 +375,30 @@ class SYSsbrk extends NativeSyscall
 
 class SYSexit extends Syscall
 {
+    private String percent(long num, long total)
+    {
+        long res = num * 10000 / total;
+        return num + "(" + (res / 100) + "." + (res % 100) + "%)";        
+    } 
+    @Override
     public void call(RISCVMachine machine)
     {
-        machine.machineStateRegister = RISCVMachine.MACHINE_STAT[4].stat;
+        machine.machineStateRegister = RISCVMachine.MACHINE_STAT[4].stat; 
+        InstructionCounter counter = machine.counter;
+        String memory = percent(counter.memory, counter.total);
+        String arithmetic = percent(counter.arithmetic, counter.total);
+        String jump = percent(counter.jump, counter.total);
+        String branch = percent(counter.branch, counter.total);
+        String syscall = percent(counter.syscall, counter.total); 
+        String msg = 
+            "\nInstructions executed:  " + counter.total+
+            "\nMemory Instruction:     " + memory +
+            "\nArithmetic Instruction: " + arithmetic +
+            "\nJump Instruction:       " + jump +
+            "\nBranch Instruction      " + branch +
+            "\nSyscall:                " + syscall + 
+            "\nProgram exited with return code " + machine.generalRegister[10];
+        MachineManager.console.writeToScreen(msg.getBytes());
     }
 }
 

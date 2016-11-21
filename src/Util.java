@@ -59,7 +59,7 @@ class Util
     }
 
 
-    static String version = "1.0.0003";
+    static String version = "1.0.0006";
 
     static ConfigManager configManager;
     static SYSclosemanager closemanager = new SYSclosemanager();

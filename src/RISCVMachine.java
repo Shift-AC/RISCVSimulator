@@ -141,6 +141,8 @@ public class RISCVMachine
 
     MachineController controller;
 
+    InstructionCounter counter = new InstructionCounter();
+
     public RISCVMachine()
     {
         int count;
@@ -210,6 +212,7 @@ public class RISCVMachine
 
     public void stepOperate()
     {
+        counter.count(instructions[getPCIndex()]);
         controller.parse();
     }
 
