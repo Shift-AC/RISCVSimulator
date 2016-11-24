@@ -126,7 +126,7 @@ void parse_syscall(int fd, rio_t *prio)
 	gettimeofday(&tv_end, NULL);
         write_return(fd, prio, times(&tmp) - startTime);
 	tmp.tms_utime = (tv_end.tv_sec - tv_begin.tv_sec);
-        write_byte_stream(fd, prio, &tmp, sizeof(struct tms));
+        write_byte_stream(fd, prio, &tmp, sizeof(struct tms) / 2);
         break;
     case 2147483647:
 	startTime = times(&tmp);

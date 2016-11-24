@@ -45,8 +45,9 @@ int strcmp(const char *s1, const char *s2)
 
 static char buffer[15] = ">>";
 static int ind = 2;
-void generatenumstring(int num)
+void generatenumstring(const int dnum)
 {
+    int num = dnum;
     int flag = num < 0;
     if (num < 0)
     {
@@ -68,7 +69,7 @@ void generatenumstring(int num)
     }
 }
 
-void printnum(int num)
+void printnum(const int num)
 {
     generatenumstring(num);
 

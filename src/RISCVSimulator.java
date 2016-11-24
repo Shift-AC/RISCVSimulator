@@ -114,7 +114,7 @@ class RISCVSimulatorFrame extends SFrame
         public void actionPerformed(ActionEvent e)
         {
 	System.err.printf("machineState = %d\n", MachineManager.machine.machineStateRegister);
-            if (MachineManager.checkRunnable())
+            if (MachineManager.machine != null)
             {
                 updateMachine();
                 setDebugOptionState(STATE_RUNNING);

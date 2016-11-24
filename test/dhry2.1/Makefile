@@ -14,7 +14,7 @@
 #	For Microsoft C under DOS, you need a real make, not MSC make,
 #	to run this Makefile.  The public domain "ndmake" will suffice.
 #
-CC=			gcc				# C compiler name goes here (UNIX)
+CC=		/home/lqt/文档/lab-2-old/riscv/bin/riscv64-unknown-elf-gcc	#gcc#				# C compiler name goes here (UNIX)
 
 PROGS=		unix			# Programs to build (UNIX)
 

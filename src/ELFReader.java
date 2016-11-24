@@ -87,6 +87,8 @@ public class ELFReader
 
     	initPC();
 
+	machine.machineStateRegister = RISCVMachine.MACHINE_STAT[0].stat;
+
         return machine;
     }
 
