@@ -1,4 +1,4 @@
-# RISCVSimulator 1.0.0009
+# RISCVSimulator 1.0
 
 Simple pluggable RISCV64IMF simulator, works on Linux.
 
