@@ -8,6 +8,7 @@ init:
 	-@mkdir ref
 	-@mkdir tmp
 	-@mkdir tools
+	-@chmod 777 tools/objdump
 	-@echo "git will ignore files in 'test/', 'tmp/', 'bin/', and 'ref/'."
 	-@echo "Feel free to use these folders."
 	-@echo "Recommended usage of the folders:"
@@ -19,3 +20,4 @@ init:
 clean:
 	-@rm -R bin
 	-@mkdir bin
+	make clean -C src

@@ -180,7 +180,6 @@ public class RISCVMachine
         }
         catch (Exception e)
         {
-            e.printStackTrace();
             Util.reportErrorAndExit(
                 "致命错误：无法读取虚拟机控制部件信息\n类名：" + controlName);
         }

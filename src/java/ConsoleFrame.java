@@ -91,4 +91,9 @@ public class ConsoleFrame extends JFrame
     {
         txtConsole.setText(txtConsole.getText() + (new String(string)));
     }
+
+    public void writeToScreen(String string)
+    {
+        txtConsole.setText(txtConsole.getText() + string);
+    }
 }

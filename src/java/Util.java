@@ -10,6 +10,9 @@ import java.text.*;
 class Util
 {
     static final String packageName = "com.github.ShiftAC.RISCVSimulator";
+    static String version = "1.0.0012";
+
+
     // for sh_type
     static final int SHT_PROGBITS = 0x1;
     static final int SHT_NOBITS = 0x8;
@@ -58,13 +61,11 @@ class Util
         return number2byteArray(num, 2);
     }
 
-
-    static String version = "1.0.0009";
-
     static ConfigManager configManager;
     static SYSclosemanager closemanager = new SYSclosemanager();
     static void reportException(String description, Exception e)
     {
+        e.printStackTrace();
         JOptionPane.showMessageDialog(
             null, 
             description + "\n" + e.getMessage(),
