@@ -18,12 +18,14 @@ public class ConsoleFrame extends JFrame
     
     SYSstdin stdin = new SYSstdin();
 
+    String initConsole = "RISCVSimulator Console " + Util.version + "\n\n";
+
     public ConsoleFrame()
     {
         super("控制台");
         this.setLayout(null);
         //this.setLayout(new GridLayout(1, 1));
-        txtConsole = new JTextArea("RISCVSimulator Console\n");
+        txtConsole = new JTextArea(initConsole);
         pneConsole = new JScrollPane(txtConsole);
         txtCommand = new JTextArea(
             "Type lines here, press Ctrl + Enter to submit");
@@ -81,7 +83,7 @@ public class ConsoleFrame extends JFrame
     public void reset()
     {
         firstInput = true;
-        txtConsole.setText("RISCVSimulator Console\n");
+        txtConsole.setText(initConsole);
         txtCommand.setText("Type lines here, press Ctrl + Enter to submit");
     }
 

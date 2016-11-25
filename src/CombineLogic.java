@@ -955,8 +955,6 @@ class FloatALU extends CombineLogic
             return 0b010;*/
 	float fx = realI2F(x);
 	float fy = realI2F(y);
-	
-        System.out.println(fx + " " + fy);
 
 	if (fx < fy)
 	    return 0b100;

@@ -198,12 +198,12 @@ abstract class MachineController extends CombineLogic
     {
         long num = this.machine.generalRegister[17];
 
-	long[] reg = this.machine.generalRegister;
-/*        System.out.println("Syscall #" + num);
+/*	long[] reg = this.machine.generalRegister;
+        System.out.println("Syscall #" + num);
         System.out.println("Name: " + findSyscall(num).name);
         System.out.printf("Param: %d %d %d %d\n", 
-            reg[10], reg[11], reg[12], reg[13]);
-*/
+            reg[10], reg[11], reg[12], reg[13]);*/
+
         findSyscall(num).call(this.machine);
     }
 }

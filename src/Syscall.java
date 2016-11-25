@@ -17,24 +17,12 @@ class NativeSyscall extends Syscall
 {
     static final int hostPort = 2333;
 
-    static InputStream stdout;
-    //static InputStream stderr;
-    static OutputStream stdin;
+    static NativeConnect connect;
     static
     {
         try
         {
-            String nativeProgram = "bin/syscallServer";
-            Process ps = Runtime.getRuntime().exec(nativeProgram);
-            // standard library doesn't work well here.
-            //stdin = ps.getOutputStream();
-            //stdout = new InputStream(ps.getInputStream());
-            //stderr = new InputStream(ps.getErrorStream());
-
-            Socket socket = new Socket(
-                InetAddress.getLocalHost(), hostPort);
-            stdin = socket.getOutputStream();
-            stdout = socket.getInputStream();
+            connect = new NativeConnect(hostPort, "bin/syscallServer");
         }
         catch (Exception e)
         {
@@ -52,14 +40,15 @@ class NativeSyscall extends Syscall
         }
         try
         {
+
             //System.out.println("calling");
             for (byte[] message : messages)
             {
                 //System.out.println(new String(message));
-                stdin.write(message);
+                connect.in.write(message);
             }
             //System.out.println("call");
-            stdin.flush();
+            connect.in.flush();
         }
         catch (Exception e)
         {
@@ -97,7 +86,7 @@ class NativeSyscall extends Syscall
         }
         try
         {
-            machine.generalRegister[10] = getLongFromStdout();
+            machine.generalRegister[10] = connect.out.readLong();
             //System.out.println("Ret: "  + machine.generalRegister[10]);
         }
         catch (Exception e)
@@ -105,42 +94,6 @@ class NativeSyscall extends Syscall
             e.printStackTrace();
             Util.reportErrorAndExit("致命错误：无法取得系统调用返回值");
         }
-    }
-    protected long getLongFromStdout()
-        throws IOException
-    {
-        return getLongFromNetworkStream(stdout);
-    }
-
-    byte[] buf = new byte[1];
-    protected long getLongFromNetworkStream(InputStream is)
-        throws IOException
-    {
-        while (is.available() == 0);
-
-        long ret = 0;
-        is.read(buf, 0, 1);
-	////System.out.println(buf[0] + "");
-        if (buf[0] == '\n')
-        {
-            is.read(buf, 0, 1);
-        }
-        boolean isMinus = buf[0] == '-';
-        if (!isMinus)
-        {
-            ret = buf[0] - '0';
-        }
-        while (is.available() != 0)
-        {
-            is.read(buf, 0, 1);
-            if (buf[0] == ' ' || buf[0] == '\n')
-            {
-                break;
-            }
-	////System.out.println(buf[0] + "");
-            ret = ret * 10 + buf[0] - '0';
-        }
-        return isMinus ? -ret: ret;
     }
 }
 
@@ -248,35 +201,27 @@ abstract class StreamReturnedNativeSyscall extends NativeSyscall
         return false;
     }
 
-    protected byte[] readStream(InputStream is)
+    abstract long getAddress(RISCVMachine machine);
+
+    @Override
+    protected void setReturnValue(RISCVMachine machine)
     {
         try
         {
-            int len = (int)getLongFromNetworkStream(is);
-            if (len == 0)
+            super.setReturnValue(machine);
+            byte[] readValue = connect.out.readStream();
+            long address = getAddress(machine);
+            boolean result = saveBytes(machine, address, readValue);
+            if (result == false)
             {
-                return null;
+                machine.machineStateRegister = RISCVMachine.MACHINE_STAT[2].stat;
             }
-
-            while (is.available() == 0);
-
-            ////System.out.println("st " + len + " " + is.available());
-
-            byte[] arr = new byte[len];
-            is.read(arr, 0, len);
-            ////System.out.println("retstream " + new String(arr));
-            return arr;
         }
-        catch (Exception e)
+        catch (IOException e)
         {
-            e.printStackTrace();
-            Util.reportErrorAndExit("致命错误：无法取得系统调用返回值");
+            Util.reportExceptionAndExit("致命错误：无法取得系统调用返回值", e);
         }
-        return null;
-    }
-    protected byte[] readStreamFromStdout()
-    {
-        return readStream(stdout);
+
     }
 }
 
@@ -298,16 +243,9 @@ class SYSlseek extends NativeSyscall
 class SYSread extends StreamReturnedNativeSyscall
 {
     @Override
-    protected void setReturnValue(RISCVMachine machine)
+    protected long getAddress(RISCVMachine machine)
     {
-        super.setReturnValue(machine);
-        byte[] readValue = readStreamFromStdout();
-        long address = machine.generalRegister[11];
-        boolean result = saveBytes(machine, address, readValue);
-        if (result == false)
-        {
-            machine.machineStateRegister = RISCVMachine.MACHINE_STAT[2].stat;
-        }
+        return machine.generalRegister[11];
     }
 }
 
@@ -321,15 +259,9 @@ class SYStimes extends StreamReturnedNativeSyscall
         super.call(machine);
     }
     @Override
-    protected void setReturnValue(RISCVMachine machine)
+    protected long getAddress(RISCVMachine machine)
     {
-        super.setReturnValue(machine);
-        byte[] readValue = readStreamFromStdout();
-        boolean result = saveBytes(machine, address, readValue);
-        if (result = false)
-        {
-            machine.machineStateRegister = RISCVMachine.MACHINE_STAT[2].stat;
-        }
+        return address;
     }
 }
 
@@ -397,7 +329,8 @@ class SYSexit extends Syscall
             "\nJump Instruction:       " + jump +
             "\nBranch Instruction      " + branch +
             "\nSyscall:                " + syscall + 
-            "\nProgram exited with return code " + machine.generalRegister[10];
+            "\nProgram exited with return code " + machine.generalRegister[10] +
+            "\n\n";
         MachineManager.console.writeToScreen(msg.getBytes());
     }
 }
@@ -419,10 +352,10 @@ abstract class PseudoSyscall extends NativeSyscall
             for (byte[] message : messages)
             {
                 ////System.out.println("`" + new String(message) + '`');
-                stdin.write(message);
+                connect.in.write(message);
             }
             ////System.out.println("call");
-            stdin.flush();
+            connect.in.flush();
 
         }
         catch (Exception e)
@@ -450,10 +383,10 @@ abstract class StreamParameteredPseudoSyscall
             for (byte[] message : messages)
             {
                 ////System.out.println("`" + new String(message) + '`');
-                stdin.write(message);
+                connect.in.write(message);
             }
             ////System.out.println("call");
-            stdin.flush();
+            connect.in.flush();
 
         }
         catch (Exception e)
@@ -481,6 +414,13 @@ class SYSstdin extends StreamParameteredPseudoSyscall
     {
         this.name = new String("stdin");
         this.num = 2147483646;
+    }
+    @Override
+    public void call(RISCVMachine machine)
+    {
+        System.out.println("????");
+        super.call(machine);
+        System.out.println("???");
     }
     @Override
     protected byte[] getParamStream(RISCVMachine machine)
