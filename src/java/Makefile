@@ -8,4 +8,4 @@ all:
 
 .PHONY: clean
 clean:
-	rm *.class *~
+	-rm *.class *~

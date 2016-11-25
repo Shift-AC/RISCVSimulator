@@ -532,7 +532,6 @@ class DefMachineController extends MachineController
         }
         catch (Exception e)
         {
-            e.printStackTrace();
             Util.reportErrorAndExit(
                 "致命错误：无法读取系统调用信息\n类名：" + "SYS" + syscallName);
         }

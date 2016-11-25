@@ -61,7 +61,6 @@ class ConfigUtil
         }
         catch (Exception e)
         {
-            e.printStackTrace();
             Util.reportExceptionAndExit("读取配置文件configTypes时出现错误", e);
         }
     }

@@ -64,6 +64,7 @@ class ConnectReader
         block();
         int b;
         while (isWhiteSpace(b = out.read()));
+        //System.out.printf(b + " ");
 
         long ret = 0;
 
@@ -75,6 +76,7 @@ class ConnectReader
         while (out.available() != 0)
         {
             b = out.read();
+            //System.out.printf(b + " ");
 
             if (isWhiteSpace(b))
             {
@@ -82,6 +84,7 @@ class ConnectReader
             }
             ret = ret * 10 + b - '0';
         }
+        //System.out.println(isMinus ? -ret: ret);
         return isMinus ? -ret: ret;
     }
 }
@@ -104,6 +107,15 @@ class ConnectWriter
             in.write(buffer.remove());
         }
         in.flush();
+    }
+
+    public void write(String str)
+        throws IOException
+    {
+        if (str != null)
+        {
+            write(str.getBytes());
+        }
     }
 
     public void write(byte[] bytes)

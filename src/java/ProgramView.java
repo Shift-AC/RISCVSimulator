@@ -182,12 +182,17 @@ class CodeLinePane extends JPanel
     boolean isSpilt(char c)
     {
         return c == ' ' || c == '\t' || c == '#'
-            || c == ',' || c == '(' || c == ')' || c == '>';
+            || c == ',' || c == '(' || c == ')' || c == '<';
     }
 
     boolean isCharacter(char c)
     {
         return (c >= 'a' && c <= 'z') || (c <= 'Z' && c >= 'A');
+    }
+
+    boolean isCommentHeader(char c)
+    {
+        return c == '#' || c == '<';
     }
 
     String paintString(String str, String color)
@@ -212,9 +217,9 @@ class CodeLinePane extends JPanel
         };
         String[] commentColor = 
         {
-            "<font color=#000000>",
-            "<font color=#3E3E3C>",
-            "<font color=#9C9C96>"
+            "<font color=#5070D0>",
+            "<font color=#8890D8>",
+            "<font color=#BCC0E4>"
         };
         for (int i = 0; i < param.length(); ++i)
         {
@@ -234,18 +239,17 @@ class CodeLinePane extends JPanel
                 sb.append(paintString(word, color[transparent]));
                 break;
             }
-            color = param.charAt(j) == '>' ? commentColor : color;
-            sb.append(paintString(word, color[transparent]));
-            
-            if (param.charAt(j) != '#')
+            if (isCommentHeader(param.charAt(j)))
             {
-                sb.append(param.charAt(j));
-            }
-            else
-            {
-                sb.append(param.substring(j));
+                String comment = param.substring(j);
+                comment = comment.replace("<", "&lt;");
+                comment = comment.replace(">", "&gt;");
+                sb.append(paintString(comment, commentColor[transparent]));
                 break;
             }
+            
+            sb.append(paintString(word, color[transparent]));
+            sb.append(param.charAt(j));
             i = j;
         }
 

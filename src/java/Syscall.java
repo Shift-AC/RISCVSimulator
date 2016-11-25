@@ -26,7 +26,6 @@ class NativeSyscall extends Syscall
         }
         catch (Exception e)
         {
-            e.printStackTrace();
             Util.reportExceptionAndExit("致命错误：无法启动系统调用管理器", e);
         }
     }
@@ -52,7 +51,6 @@ class NativeSyscall extends Syscall
         }
         catch (Exception e)
         {
-            e.printStackTrace();
             Util.reportErrorAndExit("致命错误：无法与系统调用管理器交互");
         }
 
@@ -91,7 +89,6 @@ class NativeSyscall extends Syscall
         }
         catch (Exception e)
         {
-            e.printStackTrace();
             Util.reportErrorAndExit("致命错误：无法取得系统调用返回值");
         }
     }
@@ -331,7 +328,7 @@ class SYSexit extends Syscall
             "\nSyscall:                " + syscall + 
             "\nProgram exited with return code " + machine.generalRegister[10] +
             "\n\n";
-        MachineManager.console.writeToScreen(msg.getBytes());
+        MachineManager.console.writeToScreen(msg);
     }
 }
 
@@ -360,7 +357,6 @@ abstract class PseudoSyscall extends NativeSyscall
         }
         catch (Exception e)
         {
-            e.printStackTrace();
             Util.reportErrorAndExit("致命错误：无法与系统调用管理器交互");
         }
     }
@@ -391,7 +387,6 @@ abstract class StreamParameteredPseudoSyscall
         }
         catch (Exception e)
         {
-            e.printStackTrace();
             Util.reportErrorAndExit("致命错误：无法与系统调用管理器交互");
         }
     }
@@ -418,9 +413,7 @@ class SYSstdin extends StreamParameteredPseudoSyscall
     @Override
     public void call(RISCVMachine machine)
     {
-        System.out.println("????");
         super.call(machine);
-        System.out.println("???");
     }
     @Override
     protected byte[] getParamStream(RISCVMachine machine)
