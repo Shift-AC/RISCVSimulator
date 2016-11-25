@@ -1,20 +1,21 @@
-# RISCVSimulator
+# RISCVSimulator 1.0.0009
 
 Simple pluggable RISCV64IMF simulator, works on Linux.
 
 ## For Contributors
 
-To initialize your workspace after your first `git clone` operation, use __init.sh__.
+To initialize your workspace after your first `git clone` operation, use `make init`.
 
 ## 安装程序
 
 ```sh
-chmod 777 *.sh
-./init.sh
-./compile.sh
+make init
+make
 ```
 
-如上所示，运行`init.sh`初始化工作区，之后运行`compile.sh`以完成编译安装。推荐在完成编译之后将riscv-toolchain中附带的`objdump`程序复制到`tools/`文件夹。（也可使用程序包中附带的objdump程序，但它可能与特定的系统不兼容）
+使用如上所示的shell命令完成编译安装。
+
+推荐在完成编译之后将riscv-toolchain中附带的`objdump`程序复制到`tools/`文件夹。（也可忽略此步，直接使用程序包中附带的objdump程序，但它可能与特定的系统不兼容）
 
 ## 程序功能简述
 

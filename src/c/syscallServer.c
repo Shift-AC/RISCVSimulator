@@ -1,8 +1,4 @@
-// Modified Code
-// Source: ICS Lab8(proxy lab) handout
-
-#include <sys/times.h>
-#include "csapp.h"
+#include "include/nativeServer.h"
 
 #define LONG_BUF_LEN 4096
 #define MAXLINE 256

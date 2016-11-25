@@ -62,5 +62,6 @@ int main(int argc, char **argv)
 	Objdump();
 	Extract();
 	Output();
+	system("rm ObjdumpOut");
 	return 0;
 }
