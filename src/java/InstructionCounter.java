@@ -9,6 +9,16 @@ public class InstructionCounter
     long syscall = 0;
     long branch = 0;
 
+    public void reset()
+    {
+        total = 0;
+        jump = 0;
+        memory = 0;
+        arithmetic = 0;
+        syscall = 0;
+        branch = 0;
+    }
+
     public void count(RISCVInstruction ins)
     {
         String asm = ins.asm;

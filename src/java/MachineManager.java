@@ -416,6 +416,7 @@ public class MachineManager extends Thread
     static SYSsetstarttime setstarttime = new SYSsetstarttime();
     static private boolean startRun()
     {
+        machine.counter.reset();
         step();
 
         setstarttime.call(null);

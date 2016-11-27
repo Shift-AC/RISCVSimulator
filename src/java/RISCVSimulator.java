@@ -262,9 +262,9 @@ class RISCVSimulatorFrame extends SFrame
 
         try
         {
-            ((MemoryManageUnit)
-                ((DefMachineController)MachineManager.machine.controller).modules[5])
-                .cache.exit();
+            DefMachineController controller = 
+                (DefMachineController)MachineManager.machine.controller;
+            ((MemoryManageUnit)controller.modules[5]).cache.exit();  
         }
         catch (Exception e)
         {
