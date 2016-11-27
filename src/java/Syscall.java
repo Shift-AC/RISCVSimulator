@@ -326,9 +326,46 @@ class SYSexit extends Syscall
             "\nJump Instruction:       " + jump +
             "\nBranch Instruction      " + branch +
             "\nSyscall:                " + syscall + 
-            "\nProgram exited with return code " + machine.generalRegister[10] +
             "\n\n";
         MachineManager.console.writeToScreen(msg);
+
+        try
+        {
+            CacheLog[] logs = ((MemoryManageUnit)
+                ((DefMachineController)machine.controller).modules[5])
+                .cache.getResult();
+            String cacheMsg = "Cache Layers: " + logs.length;
+            for (int i = 0; i < logs.length; ++i)
+            {
+                long totalMiss = logs[i].readMiss + logs[i].writeMiss;
+                long total = logs[i].read + logs[i].write;
+                double hitRate = 1.0;
+                if (total != 0)
+                {
+                    hitRate = (double)(total - totalMiss) / (double)(total);
+                }
+                cacheMsg += 
+                    "\nLayer #" + i + ":" +
+                    "\n  Read: " + logs[i].read + 
+                    " Read Miss: " + logs[i].readMiss +
+                    "\n  Write: " + logs[i].write + 
+                    " Write Miss: " + logs[i].writeMiss +
+                    "\n  Hit Rate: " + hitRate;
+            }
+            MachineManager.console.writeToScreen(cacheMsg + "\n\n");
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+        finally
+        {
+            String exitMsg = 
+                "Program exited with return code " + 
+                machine.generalRegister[10] + "\n\n";
+            MachineManager.console.writeToScreen(exitMsg);
+        }
+
     }
 }
 

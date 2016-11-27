@@ -10,7 +10,7 @@ import java.text.*;
 class Util
 {
     static final String packageName = "com.github.ShiftAC.RISCVSimulator";
-    static String version = "1.0.0012";
+    static String version = "1.1.0019";
 
 
     // for sh_type

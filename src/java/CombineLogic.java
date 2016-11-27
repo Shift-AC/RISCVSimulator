@@ -1173,7 +1173,8 @@ class FloatALU extends CombineLogic
 class MemoryManageUnit extends CombineLogic
 {
     MemorySegment[] memory;
-
+    CacheSimulator cache = new CacheSimulator();
+    
     public MemoryManageUnit(RISCVMachine machine)
     {
         super();
@@ -1359,6 +1360,7 @@ class MemoryManageUnit extends CombineLogic
         // READ PROCESS
         if (read)
         {
+            cache.read(address);
             Long outData = null;
             if (length == 1)
                 outData = loadByte(address, isUnsigned);
@@ -1384,6 +1386,7 @@ class MemoryManageUnit extends CombineLogic
         if (write) {
 //System.err.printf("addr = %016x\n", address);
 //System.err.printf("inData = %016x\n", inData);
+            cache.write(address);
             boolean success = false;
             if (length == 1)
                 success = saveByte(address, (byte)inData);

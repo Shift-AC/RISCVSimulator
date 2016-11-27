@@ -1,5 +1,10 @@
 #include "include/nativeServer.h"
 
+static inline int isWhiteSpace(char c)
+{
+    return c == ' ' || c == '\t' || c == '\r' || c == '\n';
+}
+
 // if we use socket
 #ifdef SOCKET
 
@@ -11,7 +16,8 @@ static int fd;
 void nativeInit(int port)
 {
     struct sockaddr_in clientaddr;
-    int clientlen, listenfd;
+    socklen_t clientlen;
+    int listenfd;
 
     listenfd = Open_listenfd(port);
     clientlen = sizeof(clientaddr);
@@ -21,23 +27,14 @@ void nativeInit(int port)
 
 ssize_t getStream(char *arr)
 {
-    int len = 0;
-    char num;
-    for (Rio_readnb(&rio, &num, 1); num != ' '; Rio_readnb(&rio, &num, 1))
-    {
-        if (num == '\n')
-        {
-            continue;
-        }
-        len = len * 10 + (num - '0');
-    }
-
+    long len;
+    getLong(&len);
     return Rio_readnb(&rio, arr, len);
 }
 
 void putStream(char *arr, int len)
 {
-    static const char space = ' '; 
+    static char space = ' ';
     if (len <= 0)
     {
         len = 0;
@@ -62,7 +59,24 @@ void putN(char *arr, int len)
     Rio_writen(fd, arr, len);
 }
 
-void getLine(char *arr, int max)
+void getLong(long *dest)
+{
+    int res = 0;
+    char num;
+    for (Rio_readnb(&rio, &num, 1); 
+        !isWhiteSpace(num); Rio_readnb(&rio, &num, 1))
+    {
+        res = res * 10 + (num - '0');
+    }
+    *dest = res;
+}
+
+void getChar(char *dest)
+{
+    Rio_readnb(&rio, dest, 1);
+}
+
+void getLine(char *arr, size_t max)
 {
     Rio_readlineb(&rio, arr, max);
 }
@@ -76,18 +90,9 @@ void nativeInit(int port)
 
 ssize_t getStream(char *arr)
 {
-    int len = 0;
-    char num;
-    for (read(0, &num, 1); num != ' '; read(0, &num, 1))
-    {
-        if (num == '\n')
-        {
-            continue;
-        }
-        len = len * 10 + (num - '0');
-    }
-    
-    return read(0, arr, len);
+    long len;
+    getLong(&len);
+    return read(0, arr, (int)len);
 }
 
 void putStream(char *arr, int len)
@@ -107,7 +112,23 @@ void putN(char *arr, int len)
     write(1, arr, len);
 }
 
-void getLine(char *arr, int max)
+void getLong(long *dest)
+{
+    long res = 0;
+    char num;
+    for (read(0, &num, 1); !isWhiteSpace(num); read(0, &num, 1))
+    {
+        res = res * 10 + (num - '0');
+    }
+    *dest = res;
+}
+
+void getChar(char *dest)
+{
+    *dest = getchar();
+}
+
+void getLine(char *arr, size_t max)
 {
     getline(&arr, &max, stdout);
 }
