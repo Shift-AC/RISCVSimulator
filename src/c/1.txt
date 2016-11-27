@@ -1,0 +1,6 @@
+g++ -O2 -I . -w	 -o ./parse parse.cpp
+gcc -std=c99 -O2 -I . -w -c csapp.c
+gcc -std=c99 -O2 -I . -w  -o ./syscallServer syscallServer.c nativeServer.c csapp.o -lpthread
+g++ -O2 -I . -w	  -o ./cacheServer cacheServer.cpp nativeServer.c csapp.c -lpthread
+1
+2214 34 550 16

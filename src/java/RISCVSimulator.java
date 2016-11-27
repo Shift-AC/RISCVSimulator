@@ -259,6 +259,18 @@ class RISCVSimulatorFrame extends SFrame
     void checkExit()
     {
         Util.closemanager.call(null);
+
+        try
+        {
+            DefMachineController controller = 
+                (DefMachineController)MachineManager.machine.controller;
+            ((MemoryManageUnit)controller.modules[5]).cache.exit();  
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+
         System.exit(0);
     }
 

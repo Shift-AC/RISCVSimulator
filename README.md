@@ -1,4 +1,4 @@
-# RISCVSimulator 1.0
+# RISCVSimulator 1.1
 
 Simple pluggable RISCV64IMF simulator, works on Linux.
 
@@ -30,6 +30,8 @@ make
 5. 可插接的模拟器实现：用户实现一组CombineLogic类，实现MachineController类即可改变模拟器的具体实现。
 
 6. 可插接的系统调用实现：用户实现一组Syscall类，并在config文件中注册系统调用即可使用自己的系统调用实现。
+
+7. 运行数据统计：记录执行的各类指令总数，记录缓存相关信息
 
 ## 使用程序
 
@@ -615,9 +617,78 @@ protected Signal findSignalByName(String name, Signal[] arr)
 
 在拥有`CombineLogic`和`bind()`之后，我们便基本可以理解`Controller`的设计思路了：分析数据通路，实现各组件，bind。我们也看到，`Controller`其实继承了`CombineLogic`类，它的`parse()`函数其实就是执行一个周期的指令。
 
-##### 系统调用概述
+#### 与本地程序通信
 
-在`Controller`的基础上，我们接着考虑系统调用的具体实现。
+对于本程序的实现目标而言，Java的最大不足在于其文件管理系统和Linux的文件管理系统有很大不同，于是若要实现C风格的文件管理，最好的方法是用本地的C程序实现。而同样地，如果要实现一个可插接的模块（如Cache模拟器），利用本地的C程序来与Java主程序并行执行同样是很好的选择。
+
+本程序中利用套接字（而不是Java的`Process`类中的重定向输入/输出流，因为它工作不正常）来与本地程序进行通信。
+
+为了封装对应的套接字操作，在Java端实现`NativeConnection`类如下：
+
+```java
+public class NativeConnect
+{
+    int hostPort;
+
+    ConnectReader out;
+    ConnectWriter in;
+
+    public NativeConnect(int hostPort, String serverName)
+        throws IOException
+    {
+        Process ps = Runtime.getRuntime().exec(serverName);
+        Socket socket = new Socket(InetAddress.getLocalHost(), hostPort);
+        out = new ConnectReader(socket.getInputStream());
+        in = new ConnectWriter(socket.getOutputStream());
+    }
+}
+```
+
+其中`ConnectReader`和`ConnectWriter`的实现如下所示：
+
+```java
+class ConnectReader
+{
+    InputStream out;
+    
+    public ConnectReader(InputStream out)
+    {
+        this.out = out; 
+    }
+
+    public byte[] readStream() throws IOException;
+
+    public long readLong() throws IOException;
+}
+
+class ConnectWriter
+{
+    OutputStream in;
+
+    public ConnectWriter(OutputStream in)
+    {
+        this.in = in;
+    }
+
+    public void flush() throws IOException;
+
+    public void write(String str) throws IOException;
+
+    public void write(byte[] bytes) throws IOException;
+}
+```
+
+如上所示，为了在程序中使用本地C例程，我们需要提供本地程序路径以及本地程序监听的端口，用这些信息建立一个`NativeConnect`对象，之后就可以直接用`ConnectReader`与`ConnectWriter`类中的方法进行通信（此处注意，`ConnectWriter`类中的`write`方法仅仅是把数据写到缓冲区，要真正地写出数据，须调用`flush`方法）
+
+其中需要提及的是，`readStream`方法是用于读取字节流的。字节流是拥有如下格式的数据块：  
+
+`[长度n] [n个字节]`
+
+由此，我们就有了一种与本地程序通信的方法。
+
+#### 系统调用概述
+
+在`Controller`和内置通信机制的基础上，我们接着考虑系统调用的具体实现。
 
 ```java
 public abstract class Syscall
@@ -632,13 +703,11 @@ public abstract class Syscall
 
 `Syscall`是一种类似于`CombineLogic`的数据结构。它封装一个系统调用的实现，具有系统调用号与名称。类似于`CombineLogic`的`parse()`，`Syscall`的核心部分就是它的`call()`方法。
 
-在本程序中，考虑到java的文件操作接口与标准linux系统调用极其不相像，且难以使用，我们最终选择了使用本地C程序（`syscallServer`）来实现系统调用，这样，我们可以直接利用本地的系统调用来实现，大大降低了开发难度。
+我们使用本地C程序（`syscallServer`）来实现`call()`方法，这样，我们可以直接利用本地的系统调用来实现，大大降低了开发难度。
 
 具体的做法是利用`NativeSyscall`类与本地的C程序交互。
 
-`NativeSyscall`类初始化时，会启动`syscallServer`程序，并提供输入输出流用以与之交互。同时，它也提供了一些交互的基本函数。
-
-java程序与本地程序交互的方法至少有两种，一种是利用`Runtime.exec()`方法运行本地程序并利用`getInputStream()`和`getOutputStream()`方法来获取输入输出流。另外一种是利用套接字进行网络传输。在实测中我们发现第一种方法不可行，因为程序并不能收到本地程序的`stdout`输出。于是我们最终采用了第二种策略，即利用套接字进行通信。我们让本地C程序作为服务器监听2333端口，java程序与之连接，并向它发送系统调用相关信息。具体的发送方式是：首先发送五个长整数，第一个是系统调用号，之后四个是存放参数的寄存器。之后，为了处理外部程序不能直接访问虚拟机存储的问题，我们规定了字节流传输的格式，并对于每个需要发送字节串的系统调用，在发送完参数之后发送一个字节流。对于每一个需要将字节串写到内存的系统调用，在接收完返回值之后接收一个字节流，并将之存储到内存中。
+`NativeSyscall`类初始化时，会创建一个`NativeConnect`对象，并利用它进行通信。我们让本地C程序作为服务器监听2333端口，java程序与之连接，并向它发送系统调用相关信息。具体的发送方式是：首先发送五个长整数，第一个是系统调用号，之后四个是存放参数的寄存器。之后，为了处理外部程序不能直接访问虚拟机存储的问题，我们对于每个需要发送字节串的系统调用，在发送完参数之后发送一个字节流。对于每一个需要将字节串写到内存的系统调用，在接收完返回值之后接收一个字节流，并将之存储到内存中。
 
 除此之外，对于`stdin`，`stdout`，`stderr`这三个与控制台关联的流，我们进行特殊处理。对于输出到控制台的情况，我们不与`syscallServer`交互，而仅仅是输出到控制台中的文本框。对于从控制台输入的情况，我们需要做一些特殊的处理。
 
@@ -648,6 +717,78 @@ java程序与本地程序交互的方法至少有两种，一种是利用`Runtim
 
 本程序实现的系统调用有：
 `open`, `close`, `sbrk`, `times`, `read`, `write`, `lseek`, `isatty`.
+
+#### 缓存模拟器概述
+
+缓存模拟器（`cacheServer`）也是一个本地c程序，它监听23333端口，在运行时会从输入流读取命令并执行。主要的命令有两种，即`p`命令和`g`命令。
+
+`p`命令指示`cacheServer`从`tmp/trace.txt`读取访存信息并模拟cache运行过程，`g`命令指示`cacheServer`输出运行结果。
+
+```java
+public class CacheSimulator
+{
+    static final int hostPort = 23333;
+    static final String traceFile = "tmp/trace.txt";
+    NativeConnect connect;
+    OutputStream trace = null;
+
+    static CacheLayerInfo[] defaultCache = 
+    {
+        new CacheLayerInfo(8, 64, 1 << 15, 1, 1),
+        new CacheLayerInfo(8, 64, 1 << 18, 1, 1),
+        new CacheLayerInfo(8, 64, 1 << 23, 1, 1)
+    };
+
+    public CacheSimulator()
+    {
+        try
+        {
+            connect = new NativeConnect(hostPort, "bin/cacheServer");
+            Thread.sleep(3000);
+            initCache(defaultCache);
+            trace = new FileOutputStream(traceFile);
+        }
+        catch (Exception e)
+        {
+            Util.reportExceptionAndExit("致命错误：无法启动Cache模拟器", e);
+        }
+    }
+
+    public void initCache(CacheLayerInfo[] layers);
+    public void read(long address);
+    public void write(long address);
+    public CacheLog[] getResult();
+}
+
+class CacheLog
+{
+    long read;
+    long write;
+    long readMiss;
+    long writeMiss;
+}
+
+class CacheLayerInfo
+{
+    int associative;
+    int blockSize;
+    int size;
+    int writeBack;
+    int writeAlloc;
+    public CacheLayerInfo(int associative, int blockSize, int size, 
+        int writeBack, int writeAlloc)
+    {
+        this.associative = associative;
+        this.blockSize = blockSize;
+        this.size = size;
+        this.writeBack = writeBack;
+        this.writeAlloc = writeAlloc;
+    }
+}
+```
+程序启动时，`initCache`函数会对`cacheServer`进行初始化。
+
+在每次访存时，程序会调用`CacheSimulator`类的`read`或`write`方法以将访存数据写入文件，而在程序调用exit系统调用时，程序会通知`cacheServer`输出对应的结果。
 
 #### 系统架构概述
 
